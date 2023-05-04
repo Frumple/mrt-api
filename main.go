@@ -16,7 +16,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const CONTEXT_DB = "context_db"
+const (
+	CONTEXT_DB               = "context_db"
+	DB_CONFIG_PATH           = "config/db_config.yml"
+	WARP_RAIL_COMPANIES_PATH = "data/warp_rail_companies.yml"
+)
 
 type DbConfig struct {
 	Host     string
@@ -81,7 +85,7 @@ func initializeDatabase() *sql.DB {
 func buildConnectionString() string {
 	var db_config DbConfig
 
-	data, err := os.ReadFile("yaml/db_config.yml")
+	data, err := os.ReadFile(DB_CONFIG_PATH)
 	checkForErrors(err)
 
 	err = yaml.Unmarshal([]byte(data), &db_config)
@@ -102,7 +106,7 @@ func Database(db *sql.DB) gin.HandlerFunc {
 func getWarpRailCompanies(context *gin.Context) {
 	var companies []WarpRailCompanyResult
 
-	data, err := os.ReadFile("yaml/warp_rail_companies.yml")
+	data, err := os.ReadFile(WARP_RAIL_COMPANIES_PATH)
 	checkForErrors(err)
 
 	err = yaml.Unmarshal([]byte(data), &companies)
