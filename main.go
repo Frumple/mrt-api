@@ -1,21 +1,59 @@
 package main
 
 import (
+	"database/sql"
+	"fmt"
 	"net/http"
 	"os"
+	"time"
+
+	_ "github.com/go-sql-driver/mysql"
+
+	. "github.com/frumple/mrt-api/gen/mywarp_main/table"
+	. "github.com/go-jet/jet/v2/mysql"
 
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
 )
 
-type WarpRailCompany struct {
-	Id      string
-	Name    string
-	Pattern string
+const CONTEXT_DB = "context_db"
+
+type DbConfig struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	Database string
+}
+
+type WarpRailCompanyResult struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Pattern string `json:"pattern"`
+}
+
+type WarpResult struct {
+	ID             uint32    `json:"id" sql:"primary_key"`
+	Name           string    `json:"name"`
+	PlayerUUID     string    `json:"playerUUID"`
+	WorldUUID      string    `json:"worldUUID"`
+	X              float64   `json:"x"`
+	Y              float64   `json:"y"`
+	Z              float64   `json:"z"`
+	Pitch          float64   `json:"pitch"`
+	Yaw            float64   `json:"yaw"`
+	CreationDate   time.Time `json:"creationDate"`
+	Type           uint8     `json:"type"`
+	Visits         uint32    `json:"visits"`
+	WelcomeMessage *string   `json:"welcomeMessage"`
 }
 
 func main() {
+	db := initializeDatabase()
+	defer db.Close()
+
 	engine := gin.Default()
+	engine.Use(Database(db))
 
 	v1 := engine.Group("/v1")
 	{
@@ -26,14 +64,43 @@ func main() {
 	engine.Run()
 }
 
-func checkForErrors(err error) {
-	if err != nil {
-		panic(err)
+func initializeDatabase() *sql.DB {
+	connectionString := buildConnectionString()
+
+	db, err := sql.Open("mysql", connectionString)
+	checkForErrors(err)
+
+	// sql.Open() doesn't establish any connection yet
+	// Use db.Ping() to ensure that the database is available and ready
+	db.Ping()
+	checkForErrors(err)
+
+	return db
+}
+
+func buildConnectionString() string {
+	var db_config DbConfig
+
+	data, err := os.ReadFile("yaml/db_config.yml")
+	checkForErrors(err)
+
+	err = yaml.Unmarshal([]byte(data), &db_config)
+	checkForErrors(err)
+
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", db_config.User, db_config.Password, db_config.Host, db_config.Port, db_config.Database)
+}
+
+// Middleware to pass database into a handler function
+// TODO: Move this function out
+func Database(db *sql.DB) gin.HandlerFunc {
+	return func(context *gin.Context) {
+		context.Set(CONTEXT_DB, db)
+		context.Next()
 	}
 }
 
 func getWarpRailCompanies(context *gin.Context) {
-	var companies []WarpRailCompany
+	var companies []WarpRailCompanyResult
 
 	data, err := os.ReadFile("yaml/warp_rail_companies.yml")
 	checkForErrors(err)
@@ -45,5 +112,38 @@ func getWarpRailCompanies(context *gin.Context) {
 }
 
 func getWarps(context *gin.Context) {
-	context.JSON(http.StatusOK, gin.H{})
+	var warps []WarpResult
+
+	db := context.MustGet(CONTEXT_DB).(*sql.DB)
+
+	statement := SELECT(
+		Warp.WarpID.AS("warpResult.id"),
+		Warp.Name.AS("warpResult.name"),
+		Player.UUID.AS("warpResult.playerUUID"),
+		World.UUID.AS("warpResult.worldUUID"),
+		Warp.X.AS("warpResult.x"),
+		Warp.Y.AS("warpResult.y"),
+		Warp.Z.AS("warpResult.z"),
+		Warp.Pitch.AS("warpResult.pitch"),
+		Warp.Yaw.AS("warpResult.yaw"),
+		Warp.CreationDate.AS("warpResult.creationDate"),
+		Warp.Type.AS("warpResult.type"),
+		Warp.Visits.AS("warpResult.visits"),
+		Warp.WelcomeMessage.AS("warpResult.welcomeMessage"),
+	).FROM(
+		Warp.
+			INNER_JOIN(Player, Warp.PlayerID.EQ(Player.PlayerID)).
+			INNER_JOIN(World, Warp.WorldID.EQ(World.WorldID)),
+	)
+
+	err := statement.Query(db, &warps)
+	checkForErrors(err)
+
+	context.JSON(http.StatusOK, warps)
+}
+
+func checkForErrors(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
