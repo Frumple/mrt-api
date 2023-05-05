@@ -7,12 +7,12 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
-
-	. "github.com/frumple/mrt-api/gen/mywarp_main/table"
-	. "github.com/go-jet/jet/v2/mysql"
-
+	"github.com/frumple/mrt-api/gen/mywarp_main/table"
 	"github.com/gin-gonic/gin"
+
+	//lint:ignore ST1001 This dot import is intended for Jet SQL statements (SELECT, FROM, etc.)
+	. "github.com/go-jet/jet/v2/mysql"
+	_ "github.com/go-sql-driver/mysql"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -31,7 +31,7 @@ type DbConfig struct {
 	Database string
 }
 
-type WarpResult struct {
+type Warp struct {
 	ID             uint32    `json:"id" sql:"primary_key"`
 	Name           string    `json:"name"`
 	PlayerUUID     string    `json:"playerUUID"`
@@ -47,13 +47,13 @@ type WarpResult struct {
 	WelcomeMessage *string   `json:"welcomeMessage"`
 }
 
-type CompanyResult struct {
+type Company struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
 	Pattern string `json:"pattern"`
 }
 
-type WorldResult struct {
+type World struct {
 	ID   string `json:"id"`
 	UUID string `json:"uuid"`
 }
@@ -106,9 +106,9 @@ func buildConnectionString() string {
 }
 
 // TODO: Refactor these two functions with generics
-func loadCompanies() *orderedmap.OrderedMap[string, CompanyResult] {
-	companySlice := []CompanyResult{}
-	companyMap := orderedmap.New[string, CompanyResult]()
+func loadCompanies() *orderedmap.OrderedMap[string, Company] {
+	companySlice := []Company{}
+	companyMap := orderedmap.New[string, Company]()
 
 	data, err := os.ReadFile(COMPANIES_PATH)
 	checkForErrors(err)
@@ -123,9 +123,9 @@ func loadCompanies() *orderedmap.OrderedMap[string, CompanyResult] {
 	return companyMap
 }
 
-func loadWorlds() *orderedmap.OrderedMap[string, WorldResult] {
-	worldSlice := []WorldResult{}
-	worldMap := orderedmap.New[string, WorldResult]()
+func loadWorlds() *orderedmap.OrderedMap[string, World] {
+	worldSlice := []World{}
+	worldMap := orderedmap.New[string, World]()
 
 	data, err := os.ReadFile(WORLDS_PATH)
 	checkForErrors(err)
@@ -141,34 +141,34 @@ func loadWorlds() *orderedmap.OrderedMap[string, WorldResult] {
 }
 
 func getWarps(context *gin.Context) {
-	warps := []WarpResult{}
+	warps := []Warp{}
 
 	db := context.MustGet(CONTEXT_DB).(*sql.DB)
-	companies := context.MustGet(CONTEXT_COMPANIES).(*orderedmap.OrderedMap[string, CompanyResult])
-	worlds := context.MustGet(CONTEXT_WORLDS).(*orderedmap.OrderedMap[string, WorldResult])
+	companies := context.MustGet(CONTEXT_COMPANIES).(*orderedmap.OrderedMap[string, Company])
+	worlds := context.MustGet(CONTEXT_WORLDS).(*orderedmap.OrderedMap[string, World])
 
 	companyID := context.Query("company")
 	playerUUID := context.Query("player")
 	worldID := context.Query("world")
 
 	statement := SELECT(
-		Warp.WarpID.AS("warpResult.id"),
-		Warp.Name.AS("warpResult.name"),
-		Player.UUID.AS("warpResult.playerUUID"),
-		World.UUID.AS("warpResult.worldUUID"),
-		Warp.X.AS("warpResult.x"),
-		Warp.Y.AS("warpResult.y"),
-		Warp.Z.AS("warpResult.z"),
-		Warp.Pitch.AS("warpResult.pitch"),
-		Warp.Yaw.AS("warpResult.yaw"),
-		Warp.CreationDate.AS("warpResult.creationDate"),
-		Warp.Type.AS("warpResult.type"),
-		Warp.Visits.AS("warpResult.visits"),
-		Warp.WelcomeMessage.AS("warpResult.welcomeMessage"),
+		table.Warp.WarpID.AS("warp.id"),
+		table.Warp.Name,
+		table.Player.UUID.AS("warp.playerUUID"),
+		table.World.UUID.AS("warp.worldUUID"),
+		table.Warp.X,
+		table.Warp.Y,
+		table.Warp.Z,
+		table.Warp.Pitch,
+		table.Warp.Yaw,
+		table.Warp.CreationDate,
+		table.Warp.Type,
+		table.Warp.Visits,
+		table.Warp.WelcomeMessage,
 	).FROM(
-		Warp.
-			INNER_JOIN(Player, Warp.PlayerID.EQ(Player.PlayerID)).
-			INNER_JOIN(World, Warp.WorldID.EQ(World.WorldID)),
+		table.Warp.
+			INNER_JOIN(table.Player, table.Warp.PlayerID.EQ(table.Player.PlayerID)).
+			INNER_JOIN(table.World, table.Warp.WorldID.EQ(table.World.WorldID)),
 	)
 
 	boolExpressions := []BoolExpression{}
@@ -188,7 +188,7 @@ func getWarps(context *gin.Context) {
 			return
 		}
 
-		boolExpressions = append(boolExpressions, Player.UUID.EQ(String(playerUUID)))
+		boolExpressions = append(boolExpressions, table.Player.UUID.EQ(String(playerUUID)))
 	}
 
 	if companyID != "" {
@@ -203,7 +203,7 @@ func getWarps(context *gin.Context) {
 			return
 		}
 
-		boolExpressions = append(boolExpressions, Warp.Name.LIKE(String(company.Pattern)))
+		boolExpressions = append(boolExpressions, table.Warp.Name.LIKE(String(company.Pattern)))
 	}
 
 	if worldID != "" {
@@ -220,7 +220,7 @@ func getWarps(context *gin.Context) {
 
 		worldUUID := world.UUID
 
-		boolExpressions = append(boolExpressions, World.UUID.EQ(String(worldUUID)))
+		boolExpressions = append(boolExpressions, table.World.UUID.EQ(String(worldUUID)))
 	}
 
 	if len(boolExpressions) > 0 {
@@ -239,12 +239,12 @@ func getWarps(context *gin.Context) {
 }
 
 func getCompanies(context *gin.Context) {
-	companies := context.MustGet(CONTEXT_COMPANIES).(*orderedmap.OrderedMap[string, CompanyResult])
+	companies := context.MustGet(CONTEXT_COMPANIES).(*orderedmap.OrderedMap[string, Company])
 	context.JSON(http.StatusOK, companies)
 }
 
 func getWorlds(context *gin.Context) {
-	worlds := context.MustGet(CONTEXT_WORLDS).(*orderedmap.OrderedMap[string, WorldResult])
+	worlds := context.MustGet(CONTEXT_WORLDS).(*orderedmap.OrderedMap[string, World])
 	context.JSON(http.StatusOK, worlds)
 }
 

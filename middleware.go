@@ -22,7 +22,7 @@ func Database(db *sql.DB) gin.HandlerFunc {
 }
 
 // Middleware to pass YAML data into a handler function
-func StaticData(companies *orderedmap.OrderedMap[string, CompanyResult], worlds *orderedmap.OrderedMap[string, WorldResult]) gin.HandlerFunc {
+func StaticData(companies *orderedmap.OrderedMap[string, Company], worlds *orderedmap.OrderedMap[string, World]) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		context.Set(CONTEXT_COMPANIES, companies)
 		context.Set(CONTEXT_WORLDS, worlds)
