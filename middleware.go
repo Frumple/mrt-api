@@ -8,21 +8,19 @@ import (
 )
 
 const (
-	CONTEXT_DB        = "context_db"
-	CONTEXT_COMPANIES = "context_companies"
+	CONTEXT_DB        = "db"
+	CONTEXT_COMPANIES = "companies"
 	CONTEXT_WORLDS    = "worlds"
 )
 
-// Middleware to pass database into a handler function
-func Database(db *sql.DB) gin.HandlerFunc {
+func DatabaseMiddleware(db *sql.DB) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		context.Set(CONTEXT_DB, db)
 		context.Next()
 	}
 }
 
-// Middleware to pass YAML data into a handler function
-func StaticData(companies *orderedmap.OrderedMap[string, Company], worlds *orderedmap.OrderedMap[string, World]) gin.HandlerFunc {
+func StaticDataMiddleware(companies *orderedmap.OrderedMap[string, Company], worlds *orderedmap.OrderedMap[string, World]) gin.HandlerFunc {
 	return func(context *gin.Context) {
 		context.Set(CONTEXT_COMPANIES, companies)
 		context.Set(CONTEXT_WORLDS, worlds)

@@ -58,6 +58,19 @@ type World struct {
 	UUID string `json:"uuid"`
 }
 
+type StaticData interface {
+	Company | World
+	GetID() string
+}
+
+func (company Company) GetID() string {
+	return company.ID
+}
+
+func (world World) GetID() string {
+	return world.ID
+}
+
 func main() {
 	db := initializeDatabase()
 	defer db.Close()
@@ -66,8 +79,8 @@ func main() {
 	worlds := loadWorlds()
 
 	engine := gin.Default()
-	engine.Use(Database(db))
-	engine.Use(StaticData(companies, worlds))
+	engine.Use(DatabaseMiddleware(db))
+	engine.Use(StaticDataMiddleware(companies, worlds))
 
 	v1 := engine.Group("/v1")
 	{
@@ -105,39 +118,29 @@ func buildConnectionString() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", db_config.User, db_config.Password, db_config.Host, db_config.Port, db_config.Database)
 }
 
-// TODO: Refactor these two functions with generics
 func loadCompanies() *orderedmap.OrderedMap[string, Company] {
-	companySlice := []Company{}
-	companyMap := orderedmap.New[string, Company]()
-
-	data, err := os.ReadFile(COMPANIES_PATH)
-	checkForErrors(err)
-
-	err = yaml.Unmarshal([]byte(data), &companySlice)
-	checkForErrors(err)
-
-	for _, value := range companySlice {
-		companyMap.Set(value.ID, value)
-	}
-
-	return companyMap
+	return loadStaticData[Company](COMPANIES_PATH)
 }
 
 func loadWorlds() *orderedmap.OrderedMap[string, World] {
-	worldSlice := []World{}
-	worldMap := orderedmap.New[string, World]()
+	return loadStaticData[World](WORLDS_PATH)
+}
 
-	data, err := os.ReadFile(WORLDS_PATH)
+func loadStaticData[V StaticData](yamlFilePath string) *orderedmap.OrderedMap[string, V] {
+	vSlice := []V{}
+	vMap := orderedmap.New[string, V]()
+
+	data, err := os.ReadFile(yamlFilePath)
 	checkForErrors(err)
 
-	err = yaml.Unmarshal([]byte(data), &worldSlice)
+	err = yaml.Unmarshal([]byte(data), &vSlice)
 	checkForErrors(err)
 
-	for _, value := range worldSlice {
-		worldMap.Set(value.ID, value)
+	for _, value := range vSlice {
+		vMap.Set(value.GetID(), value)
 	}
 
-	return worldMap
+	return vMap
 }
 
 func getWarps(context *gin.Context) {
