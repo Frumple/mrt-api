@@ -13,6 +13,7 @@ import (
 	. "github.com/go-jet/jet/v2/mysql"
 
 	"github.com/gin-gonic/gin"
+	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -105,9 +106,9 @@ func buildConnectionString() string {
 }
 
 // TODO: Refactor these two functions with generics
-func loadCompanies() map[string]CompanyResult {
+func loadCompanies() *orderedmap.OrderedMap[string, CompanyResult] {
 	companySlice := []CompanyResult{}
-	companyMap := map[string]CompanyResult{}
+	companyMap := orderedmap.New[string, CompanyResult]()
 
 	data, err := os.ReadFile(COMPANIES_PATH)
 	checkForErrors(err)
@@ -115,16 +116,16 @@ func loadCompanies() map[string]CompanyResult {
 	err = yaml.Unmarshal([]byte(data), &companySlice)
 	checkForErrors(err)
 
-	for _, v := range companySlice {
-		companyMap[v.ID] = v
+	for _, value := range companySlice {
+		companyMap.Set(value.ID, value)
 	}
 
 	return companyMap
 }
 
-func loadWorlds() map[string]WorldResult {
+func loadWorlds() *orderedmap.OrderedMap[string, WorldResult] {
 	worldSlice := []WorldResult{}
-	worldMap := map[string]WorldResult{}
+	worldMap := orderedmap.New[string, WorldResult]()
 
 	data, err := os.ReadFile(WORLDS_PATH)
 	checkForErrors(err)
@@ -132,8 +133,8 @@ func loadWorlds() map[string]WorldResult {
 	err = yaml.Unmarshal([]byte(data), &worldSlice)
 	checkForErrors(err)
 
-	for _, v := range worldSlice {
-		worldMap[v.ID] = v
+	for _, value := range worldSlice {
+		worldMap.Set(value.ID, value)
 	}
 
 	return worldMap
@@ -143,8 +144,8 @@ func getWarps(context *gin.Context) {
 	warps := []WarpResult{}
 
 	db := context.MustGet(CONTEXT_DB).(*sql.DB)
-	companies := context.MustGet(CONTEXT_COMPANIES).(map[string]CompanyResult)
-	worlds := context.MustGet(CONTEXT_WORLDS).(map[string]WorldResult)
+	companies := context.MustGet(CONTEXT_COMPANIES).(*orderedmap.OrderedMap[string, CompanyResult])
+	worlds := context.MustGet(CONTEXT_WORLDS).(*orderedmap.OrderedMap[string, WorldResult])
 
 	companyID := context.Query("company")
 	playerUUID := context.Query("player")
@@ -179,10 +180,11 @@ func getWarps(context *gin.Context) {
 		}
 
 		if !isValidUUID(playerUUID) {
-			context.JSON(http.StatusBadRequest, gin.H{
-				"message": "Invalid UUID format",
-				"detail":  "The player must be a UUID that has 32 hexadecimal digits (with or without hyphens).",
-			})
+			body := createErrorBody(
+				"Invalid UUID format",
+				"The player must be a UUID that has 32 hexadecimal digits (with or without hyphens).",
+			)
+			context.JSON(http.StatusBadRequest, body)
 			return
 		}
 
@@ -190,26 +192,30 @@ func getWarps(context *gin.Context) {
 	}
 
 	if companyID != "" {
-		company, exists := companies[companyID]
+		company, exists := companies.Get(companyID)
 
 		if !exists {
-			context.JSON(http.StatusBadRequest, gin.H{
-				"message": "Invalid company",
-				"detail":  "The company must be one of the entries returned from the /companies endpoint.",
-			})
+			body := createErrorBody(
+				"Invalid company",
+				"The company must be one of the entries returned from the /companies endpoint.",
+			)
+			context.JSON(http.StatusBadRequest, body)
+			return
 		}
 
 		boolExpressions = append(boolExpressions, Warp.Name.LIKE(String(company.Pattern)))
 	}
 
 	if worldID != "" {
-		world, exists := worlds[worldID]
+		world, exists := worlds.Get(worldID)
 
 		if !exists {
-			context.JSON(http.StatusBadRequest, gin.H{
-				"message": "Invalid world",
-				"detail":  "The world must be one of the entries returned from the /worlds endpoint.",
-			})
+			body := createErrorBody(
+				"Invalid world",
+				"The world must be one of the entries returned from the /worlds endpoint.",
+			)
+			context.JSON(http.StatusBadRequest, body)
+			return
 		}
 
 		worldUUID := world.UUID
@@ -233,12 +239,12 @@ func getWarps(context *gin.Context) {
 }
 
 func getCompanies(context *gin.Context) {
-	companies := context.MustGet(CONTEXT_COMPANIES).(map[string]CompanyResult)
+	companies := context.MustGet(CONTEXT_COMPANIES).(*orderedmap.OrderedMap[string, CompanyResult])
 	context.JSON(http.StatusOK, companies)
 }
 
 func getWorlds(context *gin.Context) {
-	worlds := context.MustGet(CONTEXT_WORLDS).(map[string]WorldResult)
+	worlds := context.MustGet(CONTEXT_WORLDS).(*orderedmap.OrderedMap[string, WorldResult])
 	context.JSON(http.StatusOK, worlds)
 }
 
@@ -246,4 +252,11 @@ func checkForErrors(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func createErrorBody(message string, detail string) *orderedmap.OrderedMap[string, string] {
+	body := orderedmap.New[string, string]()
+	body.Set("message", message)
+	body.Set("detail", detail)
+	return body
 }
