@@ -109,6 +109,7 @@ func getWarps(context *gin.Context) {
 	var warps []WarpResult
 
 	db := context.MustGet(CONTEXT_DB).(*sql.DB)
+	playerUUID := context.Query("playeruuid")
 
 	statement := SELECT(
 		Warp.WarpID.AS("warpResult.id"),
@@ -129,6 +130,22 @@ func getWarps(context *gin.Context) {
 			INNER_JOIN(Player, Warp.PlayerID.EQ(Player.PlayerID)).
 			INNER_JOIN(World, Warp.WorldID.EQ(World.WorldID)),
 	)
+
+	if playerUUID != "" {
+		// Add dashes to the UUID if they are missing
+		if len(playerUUID) == 32 {
+			playerUUID = fmt.Sprintf("%s-%s-%s-%s-%s", playerUUID[0:8], playerUUID[8:12], playerUUID[12:16], playerUUID[16:20], playerUUID[20:32])
+		}
+
+		if !isValidUUID(playerUUID) {
+			context.JSON(http.StatusBadRequest, gin.H{
+				"message": "Invalid UUID",
+			})
+			return
+		}
+
+		statement = statement.WHERE(Player.UUID.EQ(String(playerUUID)))
+	}
 
 	err := statement.Query(db, &warps)
 	checkForErrors(err)
