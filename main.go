@@ -17,7 +17,6 @@ import (
 )
 
 const (
-	CONTEXT_DB               = "context_db"
 	DB_CONFIG_PATH           = "config/db_config.yml"
 	WARP_RAIL_COMPANIES_PATH = "data/warp_rail_companies.yml"
 )
@@ -92,15 +91,6 @@ func buildConnectionString() string {
 	checkForErrors(err)
 
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", db_config.User, db_config.Password, db_config.Host, db_config.Port, db_config.Database)
-}
-
-// Middleware to pass database into a handler function
-// TODO: Move this function out
-func Database(db *sql.DB) gin.HandlerFunc {
-	return func(context *gin.Context) {
-		context.Set(CONTEXT_DB, db)
-		context.Next()
-	}
 }
 
 func getWarpRailCompanies(context *gin.Context) {
