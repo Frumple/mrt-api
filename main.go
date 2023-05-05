@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	DB_CONFIG_PATH           = "config/db_config.yml"
-	WARP_RAIL_COMPANIES_PATH = "data/warp_rail_companies.yml"
+	DB_CONFIG_PATH = "config/db_config.yml"
+	COMPANIES_PATH = "data/companies.yml"
+	WORLDS_PATH    = "data/worlds.yml"
 )
 
 type DbConfig struct {
@@ -27,12 +28,6 @@ type DbConfig struct {
 	User     string
 	Password string
 	Database string
-}
-
-type WarpRailCompanyResult struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Pattern string `json:"pattern"`
 }
 
 type WarpResult struct {
@@ -51,17 +46,33 @@ type WarpResult struct {
 	WelcomeMessage *string   `json:"welcomeMessage"`
 }
 
+type CompanyResult struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Pattern string `json:"pattern"`
+}
+
+type WorldResult struct {
+	ID   string `json:"id"`
+	UUID string `json:"uuid"`
+}
+
 func main() {
 	db := initializeDatabase()
 	defer db.Close()
 
+	companies := loadCompanies()
+	worlds := loadWorlds()
+
 	engine := gin.Default()
 	engine.Use(Database(db))
+	engine.Use(StaticData(companies, worlds))
 
 	v1 := engine.Group("/v1")
 	{
-		v1.GET("/warp_rail_companies", getWarpRailCompanies)
 		v1.GET("/warps", getWarps)
+		v1.GET("/companies", getCompanies)
+		v1.GET("/worlds", getWorlds)
 	}
 
 	engine.Run()
@@ -82,7 +93,7 @@ func initializeDatabase() *sql.DB {
 }
 
 func buildConnectionString() string {
-	var db_config DbConfig
+	db_config := DbConfig{}
 
 	data, err := os.ReadFile(DB_CONFIG_PATH)
 	checkForErrors(err)
@@ -93,23 +104,51 @@ func buildConnectionString() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", db_config.User, db_config.Password, db_config.Host, db_config.Port, db_config.Database)
 }
 
-func getWarpRailCompanies(context *gin.Context) {
-	var companies []WarpRailCompanyResult
+// TODO: Refactor these two functions with generics
+func loadCompanies() map[string]CompanyResult {
+	companySlice := []CompanyResult{}
+	companyMap := map[string]CompanyResult{}
 
-	data, err := os.ReadFile(WARP_RAIL_COMPANIES_PATH)
+	data, err := os.ReadFile(COMPANIES_PATH)
 	checkForErrors(err)
 
-	err = yaml.Unmarshal([]byte(data), &companies)
+	err = yaml.Unmarshal([]byte(data), &companySlice)
 	checkForErrors(err)
 
-	context.JSON(http.StatusOK, companies)
+	for _, v := range companySlice {
+		companyMap[v.ID] = v
+	}
+
+	return companyMap
+}
+
+func loadWorlds() map[string]WorldResult {
+	worldSlice := []WorldResult{}
+	worldMap := map[string]WorldResult{}
+
+	data, err := os.ReadFile(WORLDS_PATH)
+	checkForErrors(err)
+
+	err = yaml.Unmarshal([]byte(data), &worldSlice)
+	checkForErrors(err)
+
+	for _, v := range worldSlice {
+		worldMap[v.ID] = v
+	}
+
+	return worldMap
 }
 
 func getWarps(context *gin.Context) {
-	var warps []WarpResult
+	warps := []WarpResult{}
 
 	db := context.MustGet(CONTEXT_DB).(*sql.DB)
-	playerUUID := context.Query("playeruuid")
+	companies := context.MustGet(CONTEXT_COMPANIES).(map[string]CompanyResult)
+	worlds := context.MustGet(CONTEXT_WORLDS).(map[string]WorldResult)
+
+	companyID := context.Query("company")
+	playerUUID := context.Query("player")
+	worldID := context.Query("world")
 
 	statement := SELECT(
 		Warp.WarpID.AS("warpResult.id"),
@@ -131,26 +170,76 @@ func getWarps(context *gin.Context) {
 			INNER_JOIN(World, Warp.WorldID.EQ(World.WorldID)),
 	)
 
+	boolExpressions := []BoolExpression{}
+
 	if playerUUID != "" {
-		// Add dashes to the UUID if they are missing
+		// Add hyphens to the UUID if they are missing
 		if len(playerUUID) == 32 {
 			playerUUID = fmt.Sprintf("%s-%s-%s-%s-%s", playerUUID[0:8], playerUUID[8:12], playerUUID[12:16], playerUUID[16:20], playerUUID[20:32])
 		}
 
 		if !isValidUUID(playerUUID) {
 			context.JSON(http.StatusBadRequest, gin.H{
-				"message": "Invalid UUID",
+				"message": "Invalid UUID format",
+				"detail":  "The player must be a UUID that has 32 hexadecimal digits (with or without hyphens).",
 			})
 			return
 		}
 
-		statement = statement.WHERE(Player.UUID.EQ(String(playerUUID)))
+		boolExpressions = append(boolExpressions, Player.UUID.EQ(String(playerUUID)))
+	}
+
+	if companyID != "" {
+		company, exists := companies[companyID]
+
+		if !exists {
+			context.JSON(http.StatusBadRequest, gin.H{
+				"message": "Invalid company",
+				"detail":  "The company must be one of the entries returned from the /companies endpoint.",
+			})
+		}
+
+		boolExpressions = append(boolExpressions, Warp.Name.LIKE(String(company.Pattern)))
+	}
+
+	if worldID != "" {
+		world, exists := worlds[worldID]
+
+		if !exists {
+			context.JSON(http.StatusBadRequest, gin.H{
+				"message": "Invalid world",
+				"detail":  "The world must be one of the entries returned from the /worlds endpoint.",
+			})
+		}
+
+		worldUUID := world.UUID
+
+		boolExpressions = append(boolExpressions, World.UUID.EQ(String(worldUUID)))
+	}
+
+	if len(boolExpressions) > 0 {
+		combinedBoolExpression := boolExpressions[0]
+		for i := 1; i < len(boolExpressions); i++ {
+			combinedBoolExpression = combinedBoolExpression.AND(boolExpressions[i])
+		}
+
+		statement.WHERE(combinedBoolExpression)
 	}
 
 	err := statement.Query(db, &warps)
 	checkForErrors(err)
 
 	context.JSON(http.StatusOK, warps)
+}
+
+func getCompanies(context *gin.Context) {
+	companies := context.MustGet(CONTEXT_COMPANIES).(map[string]CompanyResult)
+	context.JSON(http.StatusOK, companies)
+}
+
+func getWorlds(context *gin.Context) {
+	worlds := context.MustGet(CONTEXT_WORLDS).(map[string]WorldResult)
+	context.JSON(http.StatusOK, worlds)
 }
 
 func checkForErrors(err error) {

@@ -1,0 +1,14 @@
+- id: new
+  uuid: 253ced62-9637-4f7b-a32d-4e3e8e767bd1
+- id: old
+  uuid: 59e29aa1-7e98-4d40-bac7-594905b734a9
+- id: lab
+  uuid: f2026472-bdfb-49b7-a555-a7475a4ebcb9
+- id: games
+  uuid: 54a3b155-d7a9-4ee0-a9f9-dc3214e5f688
+- id: map
+  uuid: e40e22d8-4e91-41ea-bd6e-c4a47a5915e2
+- id: space
+  uuid: bfdc2d7b-6a91-483e-9148-42cb9f925558
+- id: staff
+  uuid: 4971e020-cc28-4296-a247-68ed78ab0561
