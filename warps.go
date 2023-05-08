@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/frumple/mrt-api/gen/mywarp_main/table"
@@ -15,6 +16,7 @@ import (
 )
 
 type Warp struct {
+	ID             uint32    `json:"id" sql:"primary_key"`
 	Name           string    `json:"name"`
 	PlayerUUID     string    `json:"playerUUID"`
 	WorldUUID      string    `json:"worldUUID"`
@@ -36,13 +38,22 @@ func getWarps(context *gin.Context) {
 	companies := context.MustGet(CONTEXT_COMPANIES).(*orderedmap.OrderedMap[string, Company])
 	worlds := context.MustGet(CONTEXT_WORLDS).(*orderedmap.OrderedMap[string, World])
 
-	companyID := context.Query("company")
+	name := context.Query("name")
 	playerUUID := context.Query("player")
+	companyID := context.Query("company")
 	worldID := context.Query("world")
+
+	orderBy := context.Query("order_by")
+	sortBy := context.Query("sort_by")
 
 	statement := beginWarpSelectStatement()
 
 	boolExpressions := []BoolExpression{}
+
+	// Filter by name
+	if name != "" {
+		boolExpressions = append(boolExpressions, table.Warp.Name.EQ(String(name)))
+	}
 
 	// Filter by player
 	if playerUUID != "" {
@@ -97,6 +108,7 @@ func getWarps(context *gin.Context) {
 		boolExpressions = append(boolExpressions, table.World.UUID.EQ(String(worldUUID)))
 	}
 
+	// Combine all filters
 	if len(boolExpressions) > 0 {
 		combinedBoolExpression := boolExpressions[0]
 		for i := 1; i < len(boolExpressions); i++ {
@@ -106,22 +118,78 @@ func getWarps(context *gin.Context) {
 		statement.WHERE(combinedBoolExpression)
 	}
 
+	var column Column
+	var orderByClause OrderByClause
+
+	// Order by name, creation date, or visits
+	if orderBy != "" {
+		switch orderBy {
+		case "name":
+			column = table.Warp.Name
+		case "creation_date":
+			column = table.Warp.CreationDate
+		case "visits":
+			column = table.Warp.Visits
+		default:
+			body := createErrorBody(
+				"Invalid order_by",
+				"The 'order_by' query parameter must be one of 'name', 'creation_date', or 'visits'.",
+			)
+			context.JSON(http.StatusBadRequest, body)
+			return
+		}
+	} else {
+		column = table.Warp.WarpID
+	}
+
+	// Sort by ascending or descending
+	if sortBy != "" {
+		switch sortBy {
+		case "asc":
+			orderByClause = column.ASC()
+		case "desc":
+			orderByClause = column.DESC()
+		default:
+			body := createErrorBody(
+				"Invalid sort_by",
+				"The 'sort_by' query parameter must be one of 'asc' or 'desc'.",
+			)
+			context.JSON(http.StatusBadRequest, body)
+			return
+		}
+	} else {
+		orderByClause = column.ASC()
+	}
+
+	statement.ORDER_BY(orderByClause)
+
 	err := statement.Query(db, &warps)
 	checkForErrors(err)
 
 	context.JSON(http.StatusOK, warps)
 }
 
-func getWarpByName(context *gin.Context) {
+func getWarpById(context *gin.Context) {
 	warps := []Warp{}
 
 	db := context.MustGet(CONTEXT_DB).(*sql.DB)
-	name := context.Param("name")
+
+	id_str := context.Param("id")
+	id, err := strconv.Atoi(id_str)
+	if err != nil || id < 0 {
+		body := createErrorBody(
+			"Invalid ID",
+			"ID must be an unsigned integer.",
+		)
+		context.JSON(http.StatusBadRequest, body)
+		return
+	}
 
 	statement := beginWarpSelectStatement()
-	statement.WHERE(table.Warp.Name.EQ(String(name)))
 
-	err := statement.Query(db, &warps)
+	statement.WHERE(table.Warp.WarpID.EQ(Int(int64(id))))
+
+	err = statement.Query(db, &warps)
 	checkForErrors(err)
 
 	if len(warps) == 0 {
@@ -138,6 +206,7 @@ func getWarpByName(context *gin.Context) {
 
 func beginWarpSelectStatement() SelectStatement {
 	return SELECT(
+		table.Warp.WarpID.AS("warp.ID"),
 		table.Warp.Name,
 		table.Player.UUID.AS("warp.playerUUID"),
 		table.World.UUID.AS("warp.worldUUID"),

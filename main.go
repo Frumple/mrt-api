@@ -44,7 +44,7 @@ func main() {
 	v1 := engine.Group("/v1")
 	{
 		v1.GET("/warps", getWarps)
-		v1.GET("/warps/:name", getWarpByName)
+		v1.GET("/warps/:id", getWarpById)
 
 		v1.GET("/companies", getCompanies)
 		v1.GET("/companies/:id", getCompanyById)
