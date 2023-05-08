@@ -3,9 +3,12 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"net/http"
 	"os"
 
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/render"
 	_ "github.com/go-sql-driver/mysql"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"gopkg.in/yaml.v3"
@@ -34,26 +37,29 @@ func main() {
 	db := initializeDatabase()
 	defer db.Close()
 
-	companies := loadCompanies()
-	worlds := loadWorlds()
-
-	engine := gin.Default()
-	engine.Use(DatabaseMiddleware(db))
-	engine.Use(StaticDataMiddleware(companies, worlds))
-
-	v1 := engine.Group("/v1")
-	{
-		v1.GET("/warps", getWarps)
-		v1.GET("/warps/:id", getWarpById)
-
-		v1.GET("/companies", getCompanies)
-		v1.GET("/companies/:id", getCompanyById)
-
-		v1.GET("/worlds", getWorlds)
-		v1.GET("/worlds/:id", getWorldById)
+	companyProvider := loadCompanies()
+	worldProvider := loadWorlds()
+	warpProvider := WarpProvider{
+		db:              db,
+		companyProvider: companyProvider,
+		worldProvider:   worldProvider,
 	}
 
-	engine.Run()
+	router := chi.NewRouter()
+
+	router.Use(middleware.Logger)
+	router.Use(middleware.Recoverer)
+	router.Use(render.SetContentType(render.ContentTypeJSON))
+
+	router.Route("/api", func(r chi.Router) {
+		r.Route("/v1", func(r chi.Router) {
+			r.Mount("/warps", warpsRouter(warpProvider))
+			r.Mount("/companies", companiesRouter(companyProvider))
+			r.Mount("/worlds", worldsRouter(worldProvider))
+		})
+	})
+
+	http.ListenAndServe(":8080", router)
 }
 
 func initializeDatabase() *sql.DB {
@@ -113,15 +119,52 @@ func orderedMapToValues[K comparable, V any](vMap *orderedmap.OrderedMap[K, V]) 
 	return vSlice
 }
 
+func toRenderList[V render.Renderer](vSlice []V) []render.Renderer {
+	list := []render.Renderer{}
+	for _, v := range vSlice {
+		list = append(list, v)
+	}
+	return list
+}
+
 func checkForErrors(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
-func createErrorBody(message string, detail string) *orderedmap.OrderedMap[string, string] {
-	body := orderedmap.New[string, string]()
-	body.Set("message", message)
-	body.Set("detail", detail)
-	return body
+type ErrorResponse struct {
+	Error          error `json:"-"`
+	HTTPStatusCode int   `json:"-"`
+
+	Message   string `json:"message"`
+	Detail    string `json:"detail,omitempty"`
+	ErrorText string `json:"error,omitempty"`
+}
+
+func (response *ErrorResponse) Render(writer http.ResponseWriter, request *http.Request) error {
+	render.Status(request, response.HTTPStatusCode)
+	return nil
+}
+
+func ErrorBadRequest(detail string) render.Renderer {
+	return &ErrorResponse{
+		HTTPStatusCode: 400,
+		Message:        "Bad request.",
+		Detail:         detail,
+	}
+}
+
+func ErrorRender(err error) render.Renderer {
+	return &ErrorResponse{
+		Error:          err,
+		HTTPStatusCode: 422,
+		Message:        "Error rendering response.",
+		ErrorText:      err.Error(),
+	}
+}
+
+var ErrorNotFound = &ErrorResponse{
+	HTTPStatusCode: 404,
+	Message:        "Resource not found.",
 }

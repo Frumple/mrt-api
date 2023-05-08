@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/frumple/mrt-api/gen/mywarp_main/table"
-	"github.com/gin-gonic/gin"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
 
 	//lint:ignore ST1001 This dot import is intended for Jet SQL statements (SELECT, FROM, etc.)
 	. "github.com/go-jet/jet/v2/mysql"
-	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
 type Warp struct {
@@ -31,20 +31,30 @@ type Warp struct {
 	WelcomeMessage *string   `json:"welcomeMessage"`
 }
 
-func getWarps(context *gin.Context) {
+func (warp Warp) Render(writer http.ResponseWriter, request *http.Request) error {
+	return nil
+}
+
+type WarpProvider struct {
+	db              *sql.DB
+	companyProvider CompanyProvider
+	worldProvider   WorldProvider
+}
+
+func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.Request) {
 	warps := []Warp{}
 
-	db := context.MustGet(CONTEXT_DB).(*sql.DB)
-	companies := context.MustGet(CONTEXT_COMPANIES).(*orderedmap.OrderedMap[string, Company])
-	worlds := context.MustGet(CONTEXT_WORLDS).(*orderedmap.OrderedMap[string, World])
+	db := provider.db
+	companies := provider.companyProvider.companies
+	worlds := provider.worldProvider.worlds
 
-	name := context.Query("name")
-	playerUUID := context.Query("player")
-	companyID := context.Query("company")
-	worldID := context.Query("world")
+	name := request.URL.Query().Get("name")
+	playerUUID := request.URL.Query().Get("player")
+	companyID := request.URL.Query().Get("company")
+	worldID := request.URL.Query().Get("world")
 
-	orderBy := context.Query("order_by")
-	sortBy := context.Query("sort_by")
+	orderBy := request.URL.Query().Get("order_by")
+	sortBy := request.URL.Query().Get("sort_by")
 
 	statement := beginWarpSelectStatement()
 
@@ -63,11 +73,8 @@ func getWarps(context *gin.Context) {
 		}
 
 		if !isValidUUID(playerUUID) {
-			body := createErrorBody(
-				"Invalid player UUID format",
-				"The 'player' query parameter must be a UUID that has 32 hexadecimal digits (with or without hyphens).",
-			)
-			context.JSON(http.StatusBadRequest, body)
+			detail := "The 'player' query parameter must be a UUID that has 32 hexadecimal digits (with or without hyphens)."
+			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
 
@@ -79,11 +86,8 @@ func getWarps(context *gin.Context) {
 		company, exists := companies.Get(companyID)
 
 		if !exists {
-			body := createErrorBody(
-				"Invalid company",
-				"The 'company' query parameter must be one of the IDs returned from the /companies endpoint.",
-			)
-			context.JSON(http.StatusBadRequest, body)
+			detail := "The 'company' query parameter must be one of the IDs returned from the /companies endpoint."
+			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
 
@@ -95,11 +99,8 @@ func getWarps(context *gin.Context) {
 		world, exists := worlds.Get(worldID)
 
 		if !exists {
-			body := createErrorBody(
-				"Invalid world",
-				"The 'world' query parameter must be one of the IDs returned from the /worlds endpoint.",
-			)
-			context.JSON(http.StatusBadRequest, body)
+			detail := "The 'world' query parameter must be one of the IDs returned from the /worlds endpoint."
+			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
 
@@ -131,11 +132,8 @@ func getWarps(context *gin.Context) {
 		case "visits":
 			column = table.Warp.Visits
 		default:
-			body := createErrorBody(
-				"Invalid order_by",
-				"The 'order_by' query parameter must be one of 'name', 'creation_date', or 'visits'.",
-			)
-			context.JSON(http.StatusBadRequest, body)
+			detail := "The 'order_by' query parameter must be one of 'name', 'creation_date', or 'visits'."
+			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
 	} else {
@@ -150,11 +148,8 @@ func getWarps(context *gin.Context) {
 		case "desc":
 			orderByClause = column.DESC()
 		default:
-			body := createErrorBody(
-				"Invalid sort_by",
-				"The 'sort_by' query parameter must be one of 'asc' or 'desc'.",
-			)
-			context.JSON(http.StatusBadRequest, body)
+			detail := "The 'sort_by' query parameter must be one of 'asc' or 'desc'."
+			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
 	} else {
@@ -166,22 +161,21 @@ func getWarps(context *gin.Context) {
 	err := statement.Query(db, &warps)
 	checkForErrors(err)
 
-	context.JSON(http.StatusOK, warps)
+	err = render.RenderList(writer, request, toRenderList(warps))
+	if err != nil {
+		render.Render(writer, request, ErrorRender(err))
+		return
+	}
 }
 
-func getWarpById(context *gin.Context) {
+func (provider WarpProvider) getWarpById(writer http.ResponseWriter, request *http.Request) {
 	warps := []Warp{}
 
-	db := context.MustGet(CONTEXT_DB).(*sql.DB)
-
-	id_str := context.Param("id")
+	id_str := chi.URLParam(request, "id")
 	id, err := strconv.Atoi(id_str)
 	if err != nil || id < 0 {
-		body := createErrorBody(
-			"Invalid ID",
-			"ID must be an unsigned integer.",
-		)
-		context.JSON(http.StatusBadRequest, body)
+		detail := "ID must be an unsigned integer."
+		render.Render(writer, request, ErrorBadRequest(detail))
 		return
 	}
 
@@ -189,19 +183,19 @@ func getWarpById(context *gin.Context) {
 
 	statement.WHERE(table.Warp.WarpID.EQ(Int(int64(id))))
 
-	err = statement.Query(db, &warps)
+	err = statement.Query(provider.db, &warps)
 	checkForErrors(err)
 
 	if len(warps) == 0 {
-		body := createErrorBody(
-			"Warp not found",
-			"",
-		)
-		context.JSON(http.StatusNotFound, body)
+		render.Render(writer, request, ErrorNotFound)
 		return
 	}
 
-	context.JSON(http.StatusOK, warps[0])
+	err = render.Render(writer, request, warps[0])
+	if err != nil {
+		render.Render(writer, request, ErrorRender(err))
+		return
+	}
 }
 
 func beginWarpSelectStatement() SelectStatement {
@@ -224,4 +218,14 @@ func beginWarpSelectStatement() SelectStatement {
 			INNER_JOIN(table.Player, table.Warp.PlayerID.EQ(table.Player.PlayerID)).
 			INNER_JOIN(table.World, table.Warp.WorldID.EQ(table.World.WorldID)),
 	)
+}
+
+func warpsRouter(provider WarpProvider) http.Handler {
+	router := chi.NewRouter()
+	router.Get("/", provider.getWarps)
+
+	router.Route("/{id}", func(subrouter chi.Router) {
+		subrouter.Get("/", provider.getWarpById)
+	})
+	return router
 }
