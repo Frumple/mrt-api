@@ -56,6 +56,9 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 	orderBy := request.URL.Query().Get("order_by")
 	sortBy := request.URL.Query().Get("sort_by")
 
+	limitStr := request.URL.Query().Get("limit")
+	offsetStr := request.URL.Query().Get("offset")
+
 	statement := beginWarpSelectStatement()
 
 	boolExpressions := []BoolExpression{}
@@ -158,6 +161,36 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 
 	statement.ORDER_BY(orderByClause)
 
+	// Limit to number of records
+	if limitStr != "" {
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil || limit < 0 {
+			detail := "The 'limit' query paramemter must be an unsigned integer."
+			render.Render(writer, request, ErrorBadRequest(detail))
+			return
+		}
+
+		statement.LIMIT(int64(limit))
+	}
+
+	// Offset number of records
+	if offsetStr != "" {
+		if limitStr == "" {
+			detail := "The 'limit' query parameter must be set if the 'offset' query parameter is set."
+			render.Render(writer, request, ErrorBadRequest(detail))
+			return
+		}
+
+		offset, err := strconv.Atoi(offsetStr)
+		if err != nil || offset < 0 {
+			detail := "The 'offset' query parameter must be an unsigned integer."
+			render.Render(writer, request, ErrorBadRequest(detail))
+			return
+		}
+
+		statement.OFFSET(int64(offset))
+	}
+
 	err := statement.Query(db, &warps)
 	checkForErrors(err)
 
@@ -171,10 +204,10 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 func (provider WarpProvider) getWarpById(writer http.ResponseWriter, request *http.Request) {
 	warps := []Warp{}
 
-	id_str := chi.URLParam(request, "id")
-	id, err := strconv.Atoi(id_str)
+	idStr := chi.URLParam(request, "id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil || id < 0 {
-		detail := "ID must be an unsigned integer."
+		detail := "The 'id' parameter must be an unsigned integer."
 		render.Render(writer, request, ErrorBadRequest(detail))
 		return
 	}
