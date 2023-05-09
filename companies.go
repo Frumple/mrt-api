@@ -26,6 +26,13 @@ type CompanyProvider struct {
 	companies *orderedmap.OrderedMap[string, Company]
 }
 
+// getCompanies godoc
+// @summary     List all companies
+// @description List all companies (defined in https://github.com/Frumple/mrt-api/blob/main/data/companies.yml).
+// @tags        Companies
+// @produce     json
+// @success     200 {array} Company
+// @router      /companies [get]
 func (provider CompanyProvider) getCompanies(writer http.ResponseWriter, request *http.Request) {
 	err := render.RenderList(writer, request, toRenderList(orderedMapToValues(provider.companies)))
 	if err != nil {
@@ -34,6 +41,15 @@ func (provider CompanyProvider) getCompanies(writer http.ResponseWriter, request
 	}
 }
 
+// getCompanyById godoc
+// @summary       Get company by ID
+// @description   Get company by ID (defined in https://github.com/Frumple/mrt-api/blob/main/data/companies.yml).
+// @tags          Companies
+// @produce       json
+// @param         id  path     string  true "Company ID"
+// @success       200 {object} Company
+// @failure       404 {object} Error
+// @router        /companies/{id} [get]
 func (provider CompanyProvider) getCompanyById(writer http.ResponseWriter, request *http.Request) {
 	id := chi.URLParam(request, "id")
 

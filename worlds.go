@@ -25,6 +25,13 @@ type WorldProvider struct {
 	worlds *orderedmap.OrderedMap[string, World]
 }
 
+// getWorlds    godoc
+// @summary     List all worlds
+// @description List all worlds (defined in https://github.com/Frumple/mrt-api/blob/main/data/worlds.yml).
+// @tags        Worlds
+// @produce     json
+// @success     200 {array} World
+// @router      /worlds [get]
 func (provider WorldProvider) getWorlds(writer http.ResponseWriter, request *http.Request) {
 	err := render.RenderList(writer, request, toRenderList(orderedMapToValues(provider.worlds)))
 	if err != nil {
@@ -33,6 +40,15 @@ func (provider WorldProvider) getWorlds(writer http.ResponseWriter, request *htt
 	}
 }
 
+// getWorldById godoc
+// @summary     Get world by ID
+// @description Get world by ID (defined in https://github.com/Frumple/mrt-api/blob/main/data/worlds.yml).
+// @tags        Worlds
+// @produce     json
+// @param       id  path     string true "World ID"
+// @success     200 {object} World
+// @failure     404 {object} Error
+// @router      /worlds/{id} [get]
 func (provider WorldProvider) getWorldById(writer http.ResponseWriter, request *http.Request) {
 	id := chi.URLParam(request, "id")
 

@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"os"
 
+	_ "github.com/frumple/mrt-api/docs"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	_ "github.com/go-sql-driver/mysql"
+	httpSwagger "github.com/swaggo/http-swagger/v2"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"gopkg.in/yaml.v3"
 )
@@ -32,6 +34,16 @@ type StaticData interface {
 	Company | World
 	GetID() string
 }
+
+// @title                    Minecart Rapid Transit Server API
+// @version                  1.0.0
+// @description              Provides data from the Minecart Rapid Transit (MRT) server.
+
+// @host                     https://api.minecartrapidtransit.net
+// @BasePath	               /api/v1
+
+// @externalDocs.description GitHub Repository
+// @externalDocs.url         https://github.com/Frumple/mrt-api
 
 func main() {
 	db := initializeDatabase()
@@ -58,6 +70,8 @@ func main() {
 			r.Mount("/worlds", worldsRouter(worldProvider))
 		})
 	})
+
+	router.Get("/swagger/*", httpSwagger.WrapHandler)
 
 	http.ListenAndServe(":8080", router)
 }
@@ -133,7 +147,7 @@ func checkForErrors(err error) {
 	}
 }
 
-type ErrorResponse struct {
+type Error struct {
 	Error          error `json:"-"`
 	HTTPStatusCode int   `json:"-"`
 
@@ -142,13 +156,13 @@ type ErrorResponse struct {
 	ErrorText string `json:"error,omitempty"`
 }
 
-func (response *ErrorResponse) Render(writer http.ResponseWriter, request *http.Request) error {
+func (response *Error) Render(writer http.ResponseWriter, request *http.Request) error {
 	render.Status(request, response.HTTPStatusCode)
 	return nil
 }
 
 func ErrorBadRequest(detail string) render.Renderer {
-	return &ErrorResponse{
+	return &Error{
 		HTTPStatusCode: 400,
 		Message:        "Bad request.",
 		Detail:         detail,
@@ -156,7 +170,7 @@ func ErrorBadRequest(detail string) render.Renderer {
 }
 
 func ErrorRender(err error) render.Renderer {
-	return &ErrorResponse{
+	return &Error{
 		Error:          err,
 		HTTPStatusCode: 422,
 		Message:        "Error rendering response.",
@@ -164,7 +178,7 @@ func ErrorRender(err error) render.Renderer {
 	}
 }
 
-var ErrorNotFound = &ErrorResponse{
+var ErrorNotFound = &Error{
 	HTTPStatusCode: 404,
 	Message:        "Resource not found.",
 }

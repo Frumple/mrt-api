@@ -1,0 +1,223 @@
+basePath: /api/v1
+definitions:
+  main.Company:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      pattern:
+        type: string
+    type: object
+  main.Error:
+    properties:
+      detail:
+        type: string
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  main.Warp:
+    properties:
+      creationDate:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      pitch:
+        type: number
+      playerUUID:
+        type: string
+      type:
+        type: integer
+      visits:
+        type: integer
+      welcomeMessage:
+        type: string
+      worldUUID:
+        type: string
+      x:
+        type: number
+      "y":
+        type: number
+      yaw:
+        type: number
+      z:
+        type: number
+    type: object
+  main.World:
+    properties:
+      id:
+        type: string
+      uuid:
+        type: string
+    type: object
+externalDocs:
+  description: GitHub Repository
+  url: https://github.com/Frumple/mrt-api
+host: https://api.minecartrapidtransit.net
+info:
+  contact: {}
+  description: Provides data from the Minecart Rapid Transit (MRT) server.
+  title: Minecart Rapid Transit Server API
+  version: 1.0.0
+paths:
+  /companies:
+    get:
+      description: List all companies (defined in https://github.com/Frumple/mrt-api/blob/main/data/companies.yml).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.Company'
+            type: array
+      summary: List all companies
+      tags:
+      - Companies
+  /companies/{id}:
+    get:
+      description: Get company by ID (defined in https://github.com/Frumple/mrt-api/blob/main/data/companies.yml).
+      parameters:
+      - description: Company ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Company'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.Error'
+      summary: Get company by ID
+      tags:
+      - Companies
+  /warps:
+    get:
+      description: List all warps.
+      parameters:
+      - description: Filter by warp name.
+        in: query
+        name: name
+        type: string
+      - description: Filter by player UUID (with or without hyphens).
+        in: query
+        name: player
+        type: string
+      - description: Filter by company ID (from /companies).
+        in: query
+        name: company
+        type: string
+      - description: Filter by world ID (from /worlds).
+        in: query
+        name: world
+        type: string
+      - description: Order by 'name', 'creation_date', or 'visits'.
+        in: query
+        name: order_by
+        type: string
+      - description: Sort by 'asc' (ascending) or 'desc' (descending).
+        in: query
+        name: sort_by
+        type: string
+      - description: Limit number of warps returned.
+        in: query
+        name: limit
+        type: integer
+      - description: Number of warps to skip before returning. Can only be used if
+          the limit query parameter is set.
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.Warp'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Error'
+      summary: List all warps
+      tags:
+      - Warps
+  /warps/{id}:
+    get:
+      description: Get warp by ID.
+      parameters:
+      - description: Warp ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Warp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/main.Error'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.Error'
+      summary: Get warp by ID
+      tags:
+      - Warps
+  /worlds:
+    get:
+      description: List all worlds (defined in https://github.com/Frumple/mrt-api/blob/main/data/worlds.yml).
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/main.World'
+            type: array
+      summary: List all worlds
+      tags:
+      - Worlds
+  /worlds/{id}:
+    get:
+      description: Get world by ID (defined in https://github.com/Frumple/mrt-api/blob/main/data/worlds.yml).
+      parameters:
+      - description: World ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.World'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/main.Error'
+      summary: Get world by ID
+      tags:
+      - Worlds
+swagger: "2.0"

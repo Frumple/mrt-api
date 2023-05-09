@@ -41,6 +41,22 @@ type WarpProvider struct {
 	worldProvider   WorldProvider
 }
 
+// getWarps godoc
+// @summary     List all warps
+// @description List all warps.
+// @tags        Warps
+// @produce     json
+// @param       name     query    string false "Filter by warp name."
+// @param       player   query    string false "Filter by player UUID (with or without hyphens)."
+// @param       company  query    string false "Filter by company ID (from /companies)."
+// @param       world    query    string false "Filter by world ID (from /worlds)."
+// @param       order_by query    string false "Order by 'name', 'creation_date', or 'visits'."
+// @param       sort_by  query    string false "Sort by 'asc' (ascending) or 'desc' (descending)."
+// @param       limit    query    int    false "Limit number of warps returned."
+// @param       offset   query    int    false "Number of warps to skip before returning. Can only be used if the limit query parameter is set."
+// @success     200      {array}  Warp
+// @failure     400      {object} Error
+// @router      /warps [get]
 func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.Request) {
 	warps := []Warp{}
 
@@ -165,7 +181,7 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 	if limitStr != "" {
 		limit, err := strconv.Atoi(limitStr)
 		if err != nil || limit < 0 {
-			detail := "The 'limit' query paramemter must be an unsigned integer."
+			detail := "The 'limit' query parameter must be an unsigned integer."
 			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
@@ -201,6 +217,16 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 	}
 }
 
+// getWarpById  godoc
+// @summary     Get warp by ID
+// @description Get warp by ID.
+// @tags        Warps
+// @produce     json
+// @param       id  path     int   true "Warp ID"
+// @success     200 {object} Warp
+// @failure     400 {object} Error
+// @failure     404 {object} Error
+// @router      /warps/{id} [get]
 func (provider WarpProvider) getWarpById(writer http.ResponseWriter, request *http.Request) {
 	warps := []Warp{}
 
