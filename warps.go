@@ -41,9 +41,11 @@ type WarpProvider struct {
 	worldProvider   WorldProvider
 }
 
+const MAX_LIMIT = 2000
+
 // getWarps godoc
 // @summary     List all warps
-// @description List all warps.
+// @description List all warps. Maximum number of warps returned per request is 2000. Use the 'offset' query parameter to show further entries.
 // @tags        Warps
 // @produce     json
 // @param       name     query    string false "Filter by warp name."
@@ -52,8 +54,8 @@ type WarpProvider struct {
 // @param       world    query    string false "Filter by world ID (from /worlds)."
 // @param       order_by query    string false "Order by 'name', 'creation_date', or 'visits'."
 // @param       sort_by  query    string false "Sort by 'asc' (ascending) or 'desc' (descending)."
-// @param       limit    query    int    false "Limit number of warps returned."
-// @param       offset   query    int    false "Number of warps to skip before returning. Can only be used if the limit query parameter is set."
+// @param       limit    query    int    false "Limit number of warps returned. Maximum limit is 2000."
+// @param       offset   query    int    false "Number of warps to skip before returning."
 // @success     200      {array}  Warp
 // @failure     400      {object} Error
 // @router      /warps [get]
@@ -177,29 +179,28 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 
 	statement.ORDER_BY(orderByClause)
 
-	// Limit to number of records
+	// Limit to a number of records
+	limit := MAX_LIMIT
+
+	// Use a different limit if specified
 	if limitStr != "" {
-		limit, err := strconv.Atoi(limitStr)
-		if err != nil || limit < 0 {
-			detail := "The 'limit' query parameter must be an unsigned integer."
+		new_limit, err := strconv.Atoi(limitStr)
+		if err != nil || new_limit < 0 || new_limit > MAX_LIMIT {
+			detail := fmt.Sprintf("The 'limit' query parameter must be an integer within the following range: 0 <= limit <= %d.", MAX_LIMIT)
 			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
 
-		statement.LIMIT(int64(limit))
+		limit = new_limit
 	}
+
+	statement.LIMIT(int64(limit))
 
 	// Offset number of records
 	if offsetStr != "" {
-		if limitStr == "" {
-			detail := "The 'limit' query parameter must be set if the 'offset' query parameter is set."
-			render.Render(writer, request, ErrorBadRequest(detail))
-			return
-		}
-
 		offset, err := strconv.Atoi(offsetStr)
 		if err != nil || offset < 0 {
-			detail := "The 'offset' query parameter must be an unsigned integer."
+			detail := "The 'offset' query parameter must be an integer that is 0 or greater."
 			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
