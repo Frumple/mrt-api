@@ -57,7 +57,7 @@ definitions:
 externalDocs:
   description: GitHub Repository
   url: https://github.com/Frumple/mrt-api
-host: https://api.minecartrapidtransit.net
+host: api.minecartrapidtransit.net
 info:
   contact: {}
   description: Provides data from the Minecart Rapid Transit (MRT) server.

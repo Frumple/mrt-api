@@ -6,7 +6,7 @@
         "contact": {},
         "version": "1.0.0"
     },
-    "host": "https://api.minecartrapidtransit.net",
+    "host": "api.minecartrapidtransit.net",
     "basePath": "/api/v1",
     "paths": {
         "/companies": {
