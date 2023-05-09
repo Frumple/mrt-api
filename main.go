@@ -22,6 +22,8 @@ const (
 	WORLDS_PATH    = "data/worlds.yml"
 )
 
+const MAX_THROTTLE = 3
+
 type DbConfig struct {
 	Host     string
 	Port     int
@@ -63,6 +65,7 @@ func main() {
 	router.Use(middleware.Heartbeat("/ping"))
 	router.Use(middleware.RealIP)
 	router.Use(middleware.Recoverer)
+	router.Use(middleware.Throttle(MAX_THROTTLE))
 	router.Use(render.SetContentType(render.ContentTypeJSON))
 
 	router.Route("/api", func(r chi.Router) {
