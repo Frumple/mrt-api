@@ -41,7 +41,7 @@ type StaticData interface {
 // @version                  1.0.0
 // @description              Provides data from the Minecart Rapid Transit (MRT) server.
 
-// @host                     https://api.minecartrapidtransit.net
+// @host                     api.minecartrapidtransit.net
 // @BasePath	               /api/v1
 
 // @externalDocs.description GitHub Repository
