@@ -15,29 +15,32 @@ Note that to ensure performance, the maximum number of warps that can be returne
 
 ## Example Requests
 
-### Get all warps owned by the user "Frumple"
+### Get all warps owned by player "Frumple"
 UUID with hyphens:
 - `https://api.minecartrapidtransit.net/api/v1/warps?player=ffdaf900-cdb2-4f09-a0fb-81e3087da4e7`
 
 UUID without hyphens:
 - `https://api.minecartrapidtransit.net/api/v1/warps?player=ffdaf900cdb24f09a0fb81e3087da4e7`
 
-### Get all warps owned by West Zeta Rail
+### Get all warps owned by "West Zeta Rail"
 - `https://api.minecartrapidtransit.net/api/v1/warps?company=WZR`
+
+### Get all warps owned by player "FredTheTimeLord" and company "FredRail"
+- `https://api.minecartrapidtransit.net/api/v1/warps?player=8ebc51733df2450c92a3e13063409a24&company=FR`
 
 ### Get top 10 most visited warps
 - `https://api.minecartrapidtransit.net/api/v1/warps?order_by=visits&sort_by=desc&limit=10`
 
-### Get top 10 most visited IntraRail warps
+### Get top 10 most visited "IntraRail" warps
 - `https://api.minecartrapidtransit.net/api/v1/warps?company=IR&order_by=visits&sort_by=desc&limit=10`
 
-### Get 11th to 20th most visited IntraRail warps
+### Get 11th to 20th most visited "IntraRail" warps
 - `https://api.minecartrapidtransit.net/api/v1/warps?company=IR&order_by=visits&sort_by=desc&limit=10&offset=10`
 
 ### Get 10 newest warps
 - `https://api.minecartrapidtransit.net/api/v1/warps?order_by=creation_date&sort_by=desc&limit=10`
 
-### Get 10 oldest NewRail FLR warps
+### Get 10 oldest "NewRail FLR" warps
 - `https://api.minecartrapidtransit.net/api/v1/warps?company=FLR&order_by=creation_date&sort_by=asc&limit=10`
 
 ### Get all warps on the Old World
