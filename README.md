@@ -1,7 +1,7 @@
 ![Minecart Rapid Transit Logo](https://github.com/Frumple/mrt-docker-services/assets/68396/32a557d8-f5ad-44ae-9d71-da1ad7d31a55)
 
 # MRT API
-A Go-powered API that returns useful data from the [Minecart Rapid Transit](https://www.minecartrapidtransit.net) server.
+A Go-powered API that returns useful data from the [Minecart Rapid Transit (MRT) Minecraft Server](https://www.minecartrapidtransit.net).
 
 ## [Swagger (OpenAPI 2.0) Documentation](https://api.minecartrapidtransit.net/swagger/index.html)
 
@@ -16,8 +16,11 @@ Note that to ensure performance, the maximum number of warps that can be returne
 ## Example Requests
 
 ### Get all warps owned by the user "Frumple"
-- UUID with hyphens: `https://api.minecartrapidtransit.net/api/v1/warps?player=ffdaf900-cdb2-4f09-a0fb-81e3087da4e7`
-- UUID without hyphens: `https://api.minecartrapidtransit.net/api/v1/warps?player=ffdaf900cdb24f09a0fb81e3087da4e7`
+UUID with hyphens:
+- `https://api.minecartrapidtransit.net/api/v1/warps?player=ffdaf900-cdb2-4f09-a0fb-81e3087da4e7`
+
+UUID without hyphens:
+- `https://api.minecartrapidtransit.net/api/v1/warps?player=ffdaf900cdb24f09a0fb81e3087da4e7`
 
 ### Get all warps owned by West Zeta Rail
 - `https://api.minecartrapidtransit.net/api/v1/warps?company=WZR`
