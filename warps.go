@@ -186,7 +186,7 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 	if limitStr != "" {
 		new_limit, err := strconv.Atoi(limitStr)
 		if err != nil || new_limit < 0 || new_limit > MAX_LIMIT {
-			detail := fmt.Sprintf("The 'limit' query parameter must be an integer within the following range: 0 <= limit <= %d.", MAX_LIMIT)
+			detail := fmt.Sprintf("The 'limit' query parameter must be an unsigned integer within the following range: 0 <= limit <= %d.", MAX_LIMIT)
 			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
@@ -200,7 +200,7 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 	if offsetStr != "" {
 		offset, err := strconv.Atoi(offsetStr)
 		if err != nil || offset < 0 {
-			detail := "The 'offset' query parameter must be an integer that is 0 or greater."
+			detail := "The 'offset' query parameter must be an unsigned integer."
 			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
