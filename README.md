@@ -43,6 +43,9 @@ UUID without hyphens:
 ### Get all warps on the Old World
 - `https://api.minecartrapidtransit.net/api/v1/warps?world=old`
 
+### Get all private warps
+- `https://api.minecartrapidtransit.net/api/v1/warps?type=0`
+
 ### Get all companies registered on this API
 - `https://api.minecartrapidtransit.net/api/v1/companies`
 

@@ -123,6 +123,10 @@ paths:
         in: query
         name: world
         type: string
+      - description: Filter by type (0 = private, 1 = public).
+        in: query
+        name: type
+        type: integer
       - description: Order by 'name', 'creation_date', or 'visits'.
         in: query
         name: order_by

@@ -52,6 +52,7 @@ const MAX_LIMIT = 2000
 // @param       player   query    string false "Filter by player UUID (can be with or without hyphens)."
 // @param       company  query    string false "Filter by company ID (from /companies)."
 // @param       world    query    string false "Filter by world ID (from /worlds)."
+// @param       type     query    int    false "Filter by type (0 = private, 1 = public)."
 // @param       order_by query    string false "Order by 'name', 'creation_date', or 'visits'."
 // @param       sort_by  query    string false "Sort by 'asc' (ascending) or 'desc' (descending)."
 // @param       limit    query    int    false "Limit number of warps returned. Maximum limit is 2000."
@@ -70,6 +71,7 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 	playerUUID := request.URL.Query().Get("player")
 	companyID := request.URL.Query().Get("company")
 	worldID := request.URL.Query().Get("world")
+	typeStr := request.URL.Query().Get("type")
 
 	orderBy := request.URL.Query().Get("order_by")
 	sortBy := request.URL.Query().Get("sort_by")
@@ -126,8 +128,19 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 		}
 
 		worldUUID := world.UUID
-
 		boolExpressions = append(boolExpressions, table.World.UUID.EQ(String(worldUUID)))
+	}
+
+	// Filter by type
+	if typeStr != "" {
+		typeInt, err := strconv.Atoi(typeStr)
+		if err != nil || typeInt < 0 || typeInt > 1 {
+			detail := "The 'type' query parameter must be either 0 (private) or 1 (public)."
+			render.Render(writer, request, ErrorBadRequest(detail))
+			return
+		}
+
+		boolExpressions = append(boolExpressions, table.Warp.Type.EQ(Int(int64(typeInt))))
 	}
 
 	// Combine all filters

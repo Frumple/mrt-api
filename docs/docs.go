@@ -110,6 +110,12 @@ const docTemplate = `{
                         "in": "query"
                     },
                     {
+                        "type": "integer",
+                        "description": "Filter by type (0 = private, 1 = public).",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
                         "type": "string",
                         "description": "Order by 'name', 'creation_date', or 'visits'.",
                         "name": "order_by",
