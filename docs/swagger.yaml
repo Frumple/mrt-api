@@ -104,13 +104,14 @@ paths:
       - Companies
   /warps:
     get:
-      description: List all warps.
+      description: List all warps. Maximum number of warps returned per request is
+        2000. Use the 'offset' query parameter to show further entries.
       parameters:
       - description: Filter by warp name.
         in: query
         name: name
         type: string
-      - description: Filter by player UUID (with or without hyphens).
+      - description: Filter by player UUID (can be with or without hyphens).
         in: query
         name: player
         type: string
@@ -130,12 +131,11 @@ paths:
         in: query
         name: sort_by
         type: string
-      - description: Limit number of warps returned.
+      - description: Limit number of warps returned. Maximum limit is 2000.
         in: query
         name: limit
         type: integer
-      - description: Number of warps to skip before returning. Can only be used if
-          the limit query parameter is set.
+      - description: Number of warps to skip before returning.
         in: query
         name: offset
         type: integer

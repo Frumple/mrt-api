@@ -49,7 +49,7 @@ const MAX_LIMIT = 2000
 // @tags        Warps
 // @produce     json
 // @param       name     query    string false "Filter by warp name."
-// @param       player   query    string false "Filter by player UUID (with or without hyphens)."
+// @param       player   query    string false "Filter by player UUID (can be with or without hyphens)."
 // @param       company  query    string false "Filter by company ID (from /companies)."
 // @param       world    query    string false "Filter by world ID (from /worlds)."
 // @param       order_by query    string false "Order by 'name', 'creation_date', or 'visits'."

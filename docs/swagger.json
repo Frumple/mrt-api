@@ -69,7 +69,7 @@
         },
         "/warps": {
             "get": {
-                "description": "List all warps.",
+                "description": "List all warps. Maximum number of warps returned per request is 2000. Use the 'offset' query parameter to show further entries.",
                 "produces": [
                     "application/json"
                 ],
@@ -86,7 +86,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "Filter by player UUID (with or without hyphens).",
+                        "description": "Filter by player UUID (can be with or without hyphens).",
                         "name": "player",
                         "in": "query"
                     },
@@ -116,13 +116,13 @@
                     },
                     {
                         "type": "integer",
-                        "description": "Limit number of warps returned.",
+                        "description": "Limit number of warps returned. Maximum limit is 2000.",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "Number of warps to skip before returning. Can only be used if the limit query parameter is set.",
+                        "description": "Number of warps to skip before returning.",
                         "name": "offset",
                         "in": "query"
                     }
