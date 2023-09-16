@@ -52,5 +52,17 @@ UUID without hyphens:
 ### Get all companies registered on this API
 - `https://api.minecartrapidtransit.net/api/v1/companies`
 
+## Development Setup
+
+Install all dependencies:
+```
+go build
+```
+
+Start the development server:
+```
+go run .
+```
+
 ## License
 This API is licensed under the [MIT License](https://choosealicense.com/licenses/mit/).
