@@ -1,21 +1,24 @@
 - id: IR
   name: IntraRail
-  pattern: IR%\_%\_%
+  pattern: "IR%\_%\_%"
 - id: MCR
   name: Mojang Commuter Railway
-  pattern: MCR\_%\_%
+  pattern: "MCR\_%\_%"
 - id: FLR
   name: NewRail FLR
-  pattern: FLR-%
+  pattern: "FLR-%"
 - id: WZR
   name: West Zeta Rail
-  pattern: WZR-%-%
+  pattern: "WZR-%-%"
 - id: BR
   name: BluRail
-  pattern: BR%\_%\_%
+  pattern: "BR%\_%\_%"
 - id: NSC
   name: Network South Central
-  pattern: NSC\_%\_%
+  pattern: "NSC\_%\_%"
 - id: FR
   name: FredRail
-  pattern: FR%
+  pattern: "FR%"
+- id: MTC
+  name: Marble Transport Company
+  pattern: "%-MTC-%-%"
