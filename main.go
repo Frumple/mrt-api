@@ -61,10 +61,10 @@ func main() {
 
 	router := chi.NewRouter()
 
-	router.Use(middleware.Logger)
-	router.Use(middleware.Heartbeat("/ping"))
 	router.Use(middleware.RealIP)
+	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+	router.Use(middleware.Heartbeat("/ping"))
 	router.Use(middleware.Throttle(MAX_THROTTLE))
 	router.Use(render.SetContentType(render.ContentTypeJSON))
 
