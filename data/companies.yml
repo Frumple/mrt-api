@@ -1,9 +1,9 @@
 - id: IR
   name: IntraRail
-  pattern: "IR%\_%\_%"
+  pattern: "IR%-%-%"
 - id: MCR
   name: Mojang Commuter Railway
-  pattern: "MCR\_%\_%"
+  pattern: "MCR-%-%"
 - id: FLR
   name: NewRail FLR
   pattern: "FLR-%"
@@ -12,10 +12,10 @@
   pattern: "WZR-%-%"
 - id: BR
   name: BluRail
-  pattern: "BR%\_%\_%"
+  pattern: "BR%\\_%\\_%"
 - id: NSC
   name: Network South Central
-  pattern: "NSC\_%\_%"
+  pattern: "NSC\\_%\\_%"
 - id: FR
   name: FredRail
   pattern: "FR%"
