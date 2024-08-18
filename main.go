@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -78,7 +79,9 @@ func main() {
 
 	router.Get("/swagger/*", httpSwagger.WrapHandler)
 
-	http.ListenAndServe(":8080", router)
+	addr := ":8080"
+	log.Println("API server started on: ", addr)
+	log.Fatal(http.ListenAndServe(addr, router))
 }
 
 func initializeDatabase() *sql.DB {
