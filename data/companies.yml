@@ -1,9 +1,15 @@
 - id: IR
   name: IntraRail
   pattern: "IR%-%-%"
+- id: IR-OLD
+  name: IntraRail (Legacy)
+  pattern: "IR%\\_%\\_%"
 - id: MCR
   name: Mojang Commuter Railway
   pattern: "MCR-%-%"
+- id: MCR-OLD
+  name: Mojang Commuter Railway (Legacy)
+  pattern: "MCR\\_%\\_%"
 - id: FLR
   name: NewRail FLR
   pattern: "FLR-%"
