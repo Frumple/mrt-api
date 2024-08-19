@@ -39,11 +39,11 @@ type StaticData interface {
 }
 
 // @title                    Minecart Rapid Transit Server API
-// @version                  1.0.0
+// @version                  2.0.0
 // @description              Provides data from the Minecart Rapid Transit (MRT) server.
 
 // @host                     api.minecartrapidtransit.net
-// @BasePath	               /api/v1
+// @BasePath	               /api/v2
 
 // @externalDocs.description GitHub Repository
 // @externalDocs.url         https://github.com/Frumple/mrt-api
@@ -54,7 +54,12 @@ func main() {
 
 	companyProvider := loadCompanies()
 	worldProvider := loadWorlds()
-	warpProvider := WarpProvider{
+	warpProviderV1 := WarpProviderV1{
+		db:              db,
+		companyProvider: companyProvider,
+		worldProvider:   worldProvider,
+	}
+	warpProviderV2 := WarpProviderV2{
 		db:              db,
 		companyProvider: companyProvider,
 		worldProvider:   worldProvider,
@@ -71,7 +76,13 @@ func main() {
 
 	router.Route("/api", func(r chi.Router) {
 		r.Route("/v1", func(r chi.Router) {
-			r.Mount("/warps", warpsRouter(warpProvider))
+			r.Mount("/warps", warpsRouter(warpProviderV1))
+			r.Mount("/companies", companiesRouter(companyProvider))
+			r.Mount("/worlds", worldsRouter(worldProvider))
+		})
+
+		r.Route("/v2", func(r chi.Router) {
+			r.Mount("/warps", warpsRouter(warpProviderV2))
 			r.Mount("/companies", companiesRouter(companyProvider))
 			r.Mount("/worlds", worldsRouter(worldProvider))
 		})

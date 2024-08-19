@@ -4,10 +4,10 @@
         "description": "Provides data from the Minecart Rapid Transit (MRT) server.",
         "title": "Minecart Rapid Transit Server API",
         "contact": {},
-        "version": "1.0.0"
+        "version": "2.0.0"
     },
     "host": "api.minecartrapidtransit.net",
-    "basePath": "/api/v1",
+    "basePath": "/api/v2",
     "paths": {
         "/companies": {
             "get": {
@@ -137,10 +137,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/main.Warp"
-                            }
+                            "$ref": "#/definitions/main.WarpResponse"
                         }
                     },
                     "400": {
@@ -322,6 +319,37 @@
                 },
                 "z": {
                     "type": "number"
+                }
+            }
+        },
+        "main.WarpResponse": {
+            "type": "object",
+            "properties": {
+                "pagination": {
+                    "$ref": "#/definitions/main.WarpResponsePagination"
+                },
+                "result": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/main.Warp"
+                    }
+                }
+            }
+        },
+        "main.WarpResponsePagination": {
+            "type": "object",
+            "properties": {
+                "hits": {
+                    "type": "integer"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total_hits": {
+                    "type": "integer"
                 }
             }
         },

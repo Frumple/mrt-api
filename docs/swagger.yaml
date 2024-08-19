@@ -1,4 +1,4 @@
-basePath: /api/v1
+basePath: /api/v2
 definitions:
   main.Company:
     properties:
@@ -47,6 +47,26 @@ definitions:
       z:
         type: number
     type: object
+  main.WarpResponse:
+    properties:
+      pagination:
+        $ref: '#/definitions/main.WarpResponsePagination'
+      result:
+        items:
+          $ref: '#/definitions/main.Warp'
+        type: array
+    type: object
+  main.WarpResponsePagination:
+    properties:
+      hits:
+        type: integer
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total_hits:
+        type: integer
+    type: object
   main.World:
     properties:
       id:
@@ -62,7 +82,7 @@ info:
   contact: {}
   description: Provides data from the Minecart Rapid Transit (MRT) server.
   title: Minecart Rapid Transit Server API
-  version: 1.0.0
+  version: 2.0.0
 paths:
   /companies:
     get:
@@ -149,9 +169,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/main.Warp'
-            type: array
+            $ref: '#/definitions/main.WarpResponse'
         "400":
           description: Bad Request
           schema:

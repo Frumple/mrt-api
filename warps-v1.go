@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/frumple/mrt-api/gen/mywarp_main/table"
 	"github.com/go-chi/chi/v5"
@@ -15,52 +14,13 @@ import (
 	. "github.com/go-jet/jet/v2/mysql"
 )
 
-type Warp struct {
-	ID             uint32    `json:"id" sql:"primary_key"`
-	Name           string    `json:"name"`
-	PlayerUUID     string    `json:"playerUUID"`
-	WorldUUID      string    `json:"worldUUID"`
-	X              float64   `json:"x"`
-	Y              float64   `json:"y"`
-	Z              float64   `json:"z"`
-	Pitch          float64   `json:"pitch"`
-	Yaw            float64   `json:"yaw"`
-	CreationDate   time.Time `json:"creationDate"`
-	Type           uint8     `json:"type"`
-	Visits         uint32    `json:"visits"`
-	WelcomeMessage *string   `json:"welcomeMessage"`
-}
-
-func (warp Warp) Render(writer http.ResponseWriter, request *http.Request) error {
-	return nil
-}
-
-type WarpProvider struct {
+type WarpProviderV1 struct {
 	db              *sql.DB
 	companyProvider CompanyProvider
 	worldProvider   WorldProvider
 }
 
-const MAX_LIMIT = 2000
-
-// getWarps godoc
-// @summary     List all warps
-// @description List all warps. Maximum number of warps returned per request is 2000. Use the 'offset' query parameter to show further entries.
-// @tags        Warps
-// @produce     json
-// @param       name     query    string false "Filter by warp name."
-// @param       player   query    string false "Filter by player UUID (can be with or without hyphens)."
-// @param       company  query    string false "Filter by company ID (from /companies)."
-// @param       world    query    string false "Filter by world ID (from /worlds)."
-// @param       type     query    int    false "Filter by type (0 = private, 1 = public)."
-// @param       order_by query    string false "Order by 'name', 'creation_date', or 'visits'."
-// @param       sort_by  query    string false "Sort by 'asc' (ascending) or 'desc' (descending)."
-// @param       limit    query    int    false "Limit number of warps returned. Maximum limit is 2000."
-// @param       offset   query    int    false "Number of warps to skip before returning."
-// @success     200      {array}  Warp
-// @failure     400      {object} Error
-// @router      /warps [get]
-func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.Request) {
+func (provider WarpProviderV1) getWarps(writer http.ResponseWriter, request *http.Request) {
 	warps := []Warp{}
 
 	db := provider.db
@@ -193,13 +153,13 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 	statement.ORDER_BY(orderByClause)
 
 	// Limit to a number of records
-	limit := MAX_LIMIT
+	limit := MAX_WARPS_LIMIT
 
 	// Use a different limit if specified
 	if limitStr != "" {
 		new_limit, err := strconv.Atoi(limitStr)
-		if err != nil || new_limit < 0 || new_limit > MAX_LIMIT {
-			detail := fmt.Sprintf("The 'limit' query parameter must be an unsigned integer within the following range: 0 <= limit <= %d.", MAX_LIMIT)
+		if err != nil || new_limit < 0 || new_limit > MAX_WARPS_LIMIT {
+			detail := fmt.Sprintf("The 'limit' query parameter must be an unsigned integer within the following range: 0 <= limit <= %d.", MAX_WARPS_LIMIT)
 			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
@@ -231,17 +191,7 @@ func (provider WarpProvider) getWarps(writer http.ResponseWriter, request *http.
 	}
 }
 
-// getWarpById  godoc
-// @summary     Get warp by ID
-// @description Get warp by ID.
-// @tags        Warps
-// @produce     json
-// @param       id  path     int   true "Warp ID"
-// @success     200 {object} Warp
-// @failure     400 {object} Error
-// @failure     404 {object} Error
-// @router      /warps/{id} [get]
-func (provider WarpProvider) getWarpById(writer http.ResponseWriter, request *http.Request) {
+func (provider WarpProviderV1) getWarpById(writer http.ResponseWriter, request *http.Request) {
 	warps := []Warp{}
 
 	idStr := chi.URLParam(request, "id")
@@ -269,36 +219,4 @@ func (provider WarpProvider) getWarpById(writer http.ResponseWriter, request *ht
 		render.Render(writer, request, ErrorRender(err))
 		return
 	}
-}
-
-func beginWarpSelectStatement() SelectStatement {
-	return SELECT(
-		table.Warp.WarpID.AS("warp.ID"),
-		table.Warp.Name,
-		table.Player.UUID.AS("warp.playerUUID"),
-		table.World.UUID.AS("warp.worldUUID"),
-		table.Warp.X,
-		table.Warp.Y,
-		table.Warp.Z,
-		table.Warp.Pitch,
-		table.Warp.Yaw,
-		table.Warp.CreationDate,
-		table.Warp.Type,
-		table.Warp.Visits,
-		table.Warp.WelcomeMessage,
-	).FROM(
-		table.Warp.
-			INNER_JOIN(table.Player, table.Warp.PlayerID.EQ(table.Player.PlayerID)).
-			INNER_JOIN(table.World, table.Warp.WorldID.EQ(table.World.WorldID)),
-	)
-}
-
-func warpsRouter(provider WarpProvider) http.Handler {
-	router := chi.NewRouter()
-	router.Get("/", provider.getWarps)
-
-	router.Route("/{id}", func(subrouter chi.Router) {
-		subrouter.Get("/", provider.getWarpById)
-	})
-	return router
 }
