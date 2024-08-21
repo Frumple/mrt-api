@@ -8,10 +8,21 @@ import (
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
+type TransportMode string
+
+const (
+	WarpRail TransportMode = "warp_rail"
+	Bus      TransportMode = "bus"
+	Air      TransportMode = "air"
+	Sea      TransportMode = "sea"
+	Other    TransportMode = "other"
+)
+
 type Company struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Pattern string `json:"pattern"`
+	ID      string        `json:"id"`
+	Name    string        `json:"name"`
+	Pattern string        `json:"pattern"`
+	Mode    TransportMode `json:"mode"`
 }
 
 func (company Company) GetID() string {
@@ -31,10 +42,35 @@ type CompanyProvider struct {
 // @description List all companies (defined in https://github.com/Frumple/mrt-api/blob/main/data/companies.yml).
 // @tags        Companies
 // @produce     json
-// @success     200 {array} Company
+// @param       mode query   string false "Filter by transport mode: `warp_rail`, `bus`, `air`, `sea`, or `other`."
+// @success     200  {array} Company
 // @router      /companies [get]
 func (provider CompanyProvider) getCompanies(writer http.ResponseWriter, request *http.Request) {
-	err := render.RenderList(writer, request, toRenderList(orderedMapToValues(provider.companies)))
+	mode := request.URL.Query().Get("mode")
+
+	companies := orderedMapToValues(provider.companies)
+
+	if mode != "" {
+		filtered_companies := []Company{}
+		mode_exists := false
+
+		for i := range companies {
+			if string(companies[i].Mode) == mode {
+				filtered_companies = append(filtered_companies, companies[i])
+				mode_exists = true
+			}
+		}
+
+		if !mode_exists {
+			detail := "The 'mode' query parameter must be one of 'warp_rail', 'bus', 'air', 'sea', or 'other'."
+			render.Render(writer, request, ErrorBadRequest(detail))
+			return
+		}
+
+		companies = filtered_companies
+	}
+
+	err := render.RenderList(writer, request, toRenderList(companies))
 	if err != nil {
 		render.Render(writer, request, ErrorRender(err))
 		return

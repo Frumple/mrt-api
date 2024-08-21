@@ -1,30 +1,60 @@
+# Warp Rail
+
 - id: IR
   name: IntraRail
   pattern: "IR%-%-%"
+  mode: warp_rail
 - id: IR-OLD
   name: IntraRail (Legacy)
   pattern: "IR%\\_%\\_%"
+  mode: warp_rail
 - id: MCR
   name: Mojang Commuter Railway
   pattern: "MCR-%-%"
+  mode: warp_rail
 - id: MCR-OLD
   name: Mojang Commuter Railway (Legacy)
   pattern: "MCR\\_%\\_%"
+  mode: warp_rail
 - id: FLR
   name: NewRail FLR
   pattern: "FLR-%"
+  mode: warp_rail
 - id: WZR
   name: West Zeta Rail
   pattern: "WZR-%-%"
+  mode: warp_rail
 - id: BR
   name: BluRail
   pattern: "BR%\\_%\\_%"
+  mode: warp_rail
 - id: NSC
   name: Network South Central
   pattern: "NSC\\_%\\_%"
+  mode: warp_rail
 - id: FR
   name: FredRail
   pattern: "FR%"
+  mode: warp_rail
 - id: MTC
   name: Marble Transport Company
   pattern: "%-MTC-%-%"
+  mode: warp_rail
+
+# Bus
+
+# Air (airplanes, seaplanes, helicopters, etc.)
+
+- id: FH
+  name: FliHigh
+  pattern: "FH\\_%\\_%"
+  mode: air
+
+# Sea (boats, ferries, hovercrafts, etc.)
+
+# Other
+
+- id: BLU
+  name: BluTransit
+  pattern: "BLU%\\_%\\_%"
+  mode: other
