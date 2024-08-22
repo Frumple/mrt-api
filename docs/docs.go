@@ -25,6 +25,14 @@ const docTemplate = `{
                     "Companies"
                 ],
                 "summary": "List all companies",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by transport mode: ` + "`" + `warp_rail` + "`" + `, ` + "`" + `bus` + "`" + `, ` + "`" + `air` + "`" + `, ` + "`" + `sea` + "`" + `, or ` + "`" + `other` + "`" + `.",
+                        "name": "mode",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -100,6 +108,12 @@ const docTemplate = `{
                         "type": "string",
                         "description": "Filter by company ID (from /companies).",
                         "name": "company",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by transport mode: ` + "`" + `warp_rail` + "`" + `, ` + "`" + `bus` + "`" + `, ` + "`" + `air` + "`" + `, ` + "`" + `sea` + "`" + `, or ` + "`" + `other` + "`" + `.",
+                        "name": "mode",
                         "in": "query"
                     },
                     {
@@ -262,6 +276,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "mode": {
+                    "$ref": "#/definitions/main.TransportMode"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -283,6 +300,23 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "main.TransportMode": {
+            "type": "string",
+            "enum": [
+                "warp_rail",
+                "bus",
+                "air",
+                "sea",
+                "other"
+            ],
+            "x-enum-varnames": [
+                "WarpRail",
+                "Bus",
+                "Air",
+                "Sea",
+                "Other"
+            ]
         },
         "main.Warp": {
             "type": "object",

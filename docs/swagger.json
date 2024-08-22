@@ -19,6 +19,14 @@
                     "Companies"
                 ],
                 "summary": "List all companies",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by transport mode: `warp_rail`, `bus`, `air`, `sea`, or `other`.",
+                        "name": "mode",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -94,6 +102,12 @@
                         "type": "string",
                         "description": "Filter by company ID (from /companies).",
                         "name": "company",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by transport mode: `warp_rail`, `bus`, `air`, `sea`, or `other`.",
+                        "name": "mode",
                         "in": "query"
                     },
                     {
@@ -256,6 +270,9 @@
                 "id": {
                     "type": "string"
                 },
+                "mode": {
+                    "$ref": "#/definitions/main.TransportMode"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -277,6 +294,23 @@
                     "type": "string"
                 }
             }
+        },
+        "main.TransportMode": {
+            "type": "string",
+            "enum": [
+                "warp_rail",
+                "bus",
+                "air",
+                "sea",
+                "other"
+            ],
+            "x-enum-varnames": [
+                "WarpRail",
+                "Bus",
+                "Air",
+                "Sea",
+                "Other"
+            ]
         },
         "main.Warp": {
             "type": "object",

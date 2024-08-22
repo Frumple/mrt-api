@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -18,6 +19,14 @@ const (
 	Other    TransportMode = "other"
 )
 
+var transportModes = []TransportMode{
+	WarpRail,
+	Bus,
+	Air,
+	Sea,
+	Other,
+}
+
 type Company struct {
 	ID      string        `json:"id"`
 	Name    string        `json:"name"`
@@ -34,7 +43,9 @@ func (company Company) Render(writer http.ResponseWriter, request *http.Request)
 }
 
 type CompanyProvider struct {
-	companies *orderedmap.OrderedMap[string, Company]
+	companies       []Company
+	companiesByID   *orderedmap.OrderedMap[string, Company]
+	companiesByMode *orderedmap.OrderedMap[TransportMode, []Company]
 }
 
 // getCompanies godoc
@@ -48,26 +59,17 @@ type CompanyProvider struct {
 func (provider CompanyProvider) getCompanies(writer http.ResponseWriter, request *http.Request) {
 	mode := request.URL.Query().Get("mode")
 
-	companies := orderedMapToValues(provider.companies)
+	companies := provider.companies
 
 	if mode != "" {
-		filtered_companies := []Company{}
 		mode_exists := false
-
-		for i := range companies {
-			if string(companies[i].Mode) == mode {
-				filtered_companies = append(filtered_companies, companies[i])
-				mode_exists = true
-			}
-		}
+		companies, mode_exists = provider.companiesByMode.Get(TransportMode(mode))
 
 		if !mode_exists {
 			detail := "The 'mode' query parameter must be one of 'warp_rail', 'bus', 'air', 'sea', or 'other'."
 			render.Render(writer, request, ErrorBadRequest(detail))
 			return
 		}
-
-		companies = filtered_companies
 	}
 
 	err := render.RenderList(writer, request, toRenderList(companies))
@@ -89,7 +91,7 @@ func (provider CompanyProvider) getCompanies(writer http.ResponseWriter, request
 func (provider CompanyProvider) getCompanyById(writer http.ResponseWriter, request *http.Request) {
 	id := chi.URLParam(request, "id")
 
-	company, exists := provider.companies.Get(id)
+	company, exists := provider.companiesByID.Get(id)
 	if !exists {
 		render.Render(writer, request, ErrorNotFound)
 		return
@@ -115,5 +117,28 @@ func companiesRouter(provider CompanyProvider) http.Handler {
 
 func loadCompanies() CompanyProvider {
 	companies := loadStaticData[Company](COMPANIES_PATH)
-	return CompanyProvider{companies: companies}
+	companiesByID := staticDataToOrderedMap(companies)
+	companiesByMode := orderedmap.New[TransportMode, []Company]()
+
+	// Populate map of transport modes to list of companies
+	for i := range transportModes {
+		companiesByMode.Set(transportModes[i], []Company{})
+	}
+	for i := range companies {
+		company := companies[i]
+		list, exists := companiesByMode.Get(company.Mode)
+
+		if !exists {
+			message := fmt.Sprintf("The company '%s' has an invalid mode: '%s'", company.ID, company.Mode)
+			panic(message)
+		}
+
+		companiesByMode.Set(company.Mode, append(list, company))
+	}
+
+	return CompanyProvider{
+		companies:       companies,
+		companiesByID:   companiesByID,
+		companiesByMode: companiesByMode,
+	}
 }

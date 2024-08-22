@@ -48,6 +48,7 @@ type WarpProviderV2 struct {
 // @param       name     query    string false "Filter by warp name."
 // @param       player   query    string false "Filter by player UUID (can be with or without hyphens)."
 // @param       company  query    string false "Filter by company ID (from /companies)."
+// @param       mode     query    string false "Filter by transport mode: `warp_rail`, `bus`, `air`, `sea`, or `other`."
 // @param       world    query    string false "Filter by world ID (from /worlds)."
 // @param       type     query    int    false "Filter by type (0 = private, 1 = public)."
 // @param       order_by query    string false "Order by 'name', 'creation_date', or 'visits'."
@@ -61,12 +62,14 @@ func (provider WarpProviderV2) getWarps(writer http.ResponseWriter, request *htt
 	warps := []Warp{}
 
 	db := provider.db
-	companies := provider.companyProvider.companies
-	worlds := provider.worldProvider.worlds
+	companiesByID := provider.companyProvider.companiesByID
+	companiesByMode := provider.companyProvider.companiesByMode
+	worldsByID := provider.worldProvider.worldsByID
 
 	name := request.URL.Query().Get("name")
 	playerUUID := request.URL.Query().Get("player")
 	companyID := request.URL.Query().Get("company")
+	mode := request.URL.Query().Get("mode")
 	worldID := request.URL.Query().Get("world")
 	typeStr := request.URL.Query().Get("type")
 
@@ -79,11 +82,11 @@ func (provider WarpProviderV2) getWarps(writer http.ResponseWriter, request *htt
 	selectStatement := beginWarpSelectStatement()
 	countStatement := beginWarpCountStatement()
 
-	boolExpressions := []BoolExpression{}
+	andExpressions := []BoolExpression{}
 
 	// Filter by name
 	if name != "" {
-		boolExpressions = append(boolExpressions, table.Warp.Name.EQ(String(name)))
+		andExpressions = append(andExpressions, table.Warp.Name.EQ(String(name)))
 	}
 
 	// Filter by player
@@ -99,12 +102,12 @@ func (provider WarpProviderV2) getWarps(writer http.ResponseWriter, request *htt
 			return
 		}
 
-		boolExpressions = append(boolExpressions, table.Player.UUID.EQ(String(playerUUID)))
+		andExpressions = append(andExpressions, table.Player.UUID.EQ(String(playerUUID)))
 	}
 
 	// Filter by company
 	if companyID != "" {
-		company, exists := companies.Get(companyID)
+		company, exists := companiesByID.Get(companyID)
 
 		if !exists {
 			detail := "The 'company' query parameter must be one of the IDs returned from the /companies endpoint."
@@ -112,12 +115,38 @@ func (provider WarpProviderV2) getWarps(writer http.ResponseWriter, request *htt
 			return
 		}
 
-		boolExpressions = append(boolExpressions, table.Warp.Name.LIKE(String(company.Pattern)))
+		andExpressions = append(andExpressions, table.Warp.Name.LIKE(String(company.Pattern)))
+	}
+
+	// Filter by mode
+	if mode != "" {
+		companies, exists := companiesByMode.Get(TransportMode(mode))
+
+		if !exists {
+			detail := "The 'mode' query parameter must be one of 'warp_rail', 'bus', 'air', 'sea', or 'other'."
+			render.Render(writer, request, ErrorBadRequest(detail))
+			return
+		}
+
+		orExpressions := []BoolExpression{}
+
+		for i := range companies {
+			company := companies[i]
+			orExpressions = append(orExpressions, table.Warp.Name.LIKE(String(company.Pattern)))
+		}
+
+		// If no companies have the specified mode, set this expression to false so that no results are returned.
+		combinedOrExpression := Bool(true).IS_FALSE()
+		if len(orExpressions) > 0 {
+			combinedOrExpression = OR(orExpressions...)
+		}
+
+		andExpressions = append(andExpressions, combinedOrExpression)
 	}
 
 	// Filter by world
 	if worldID != "" {
-		world, exists := worlds.Get(worldID)
+		world, exists := worldsByID.Get(worldID)
 
 		if !exists {
 			detail := "The 'world' query parameter must be one of the IDs returned from the /worlds endpoint."
@@ -126,7 +155,7 @@ func (provider WarpProviderV2) getWarps(writer http.ResponseWriter, request *htt
 		}
 
 		worldUUID := world.UUID
-		boolExpressions = append(boolExpressions, table.World.UUID.EQ(String(worldUUID)))
+		andExpressions = append(andExpressions, table.World.UUID.EQ(String(worldUUID)))
 	}
 
 	// Filter by type
@@ -138,18 +167,15 @@ func (provider WarpProviderV2) getWarps(writer http.ResponseWriter, request *htt
 			return
 		}
 
-		boolExpressions = append(boolExpressions, table.Warp.Type.EQ(Int(int64(typeInt))))
+		andExpressions = append(andExpressions, table.Warp.Type.EQ(Int(int64(typeInt))))
 	}
 
 	// Combine all filters
-	if len(boolExpressions) > 0 {
-		combinedBoolExpression := boolExpressions[0]
-		for i := 1; i < len(boolExpressions); i++ {
-			combinedBoolExpression = combinedBoolExpression.AND(boolExpressions[i])
-		}
+	if len(andExpressions) > 0 {
+		combinedAndExpression := AND(andExpressions...)
 
-		selectStatement.WHERE(combinedBoolExpression)
-		countStatement.WHERE(combinedBoolExpression)
+		selectStatement.WHERE(combinedAndExpression)
+		countStatement.WHERE(combinedAndExpression)
 	}
 
 	var column Column

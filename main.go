@@ -121,7 +121,7 @@ func buildConnectionString() string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", db_config.User, db_config.Password, db_config.Host, db_config.Port, db_config.Database)
 }
 
-func loadStaticData[V StaticData](yamlFilePath string) *orderedmap.OrderedMap[string, V] {
+func loadStaticData[V StaticData](yamlFilePath string) []V {
 	vSlice := []V{}
 
 	data, err := os.ReadFile(yamlFilePath)
@@ -130,10 +130,10 @@ func loadStaticData[V StaticData](yamlFilePath string) *orderedmap.OrderedMap[st
 	err = yaml.Unmarshal([]byte(data), &vSlice)
 	checkForErrors(err)
 
-	return staticDataSliceToOrderedMap(vSlice)
+	return vSlice
 }
 
-func staticDataSliceToOrderedMap[V StaticData](vSlice []V) *orderedmap.OrderedMap[string, V] {
+func staticDataToOrderedMap[V StaticData](vSlice []V) *orderedmap.OrderedMap[string, V] {
 	vMap := orderedmap.New[string, V]()
 
 	for _, value := range vSlice {
@@ -141,15 +141,6 @@ func staticDataSliceToOrderedMap[V StaticData](vSlice []V) *orderedmap.OrderedMa
 	}
 
 	return vMap
-}
-
-func orderedMapToValues[K comparable, V any](vMap *orderedmap.OrderedMap[K, V]) []V {
-	vSlice := []V{}
-	for pair := vMap.Oldest(); pair != nil; pair = pair.Next() {
-		vSlice = append(vSlice, pair.Value)
-	}
-
-	return vSlice
 }
 
 func toRenderList[V render.Renderer](vSlice []V) []render.Renderer {

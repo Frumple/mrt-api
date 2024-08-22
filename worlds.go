@@ -22,7 +22,8 @@ func (world World) Render(writer http.ResponseWriter, request *http.Request) err
 }
 
 type WorldProvider struct {
-	worlds *orderedmap.OrderedMap[string, World]
+	worlds     []World
+	worldsByID *orderedmap.OrderedMap[string, World]
 }
 
 // getWorlds    godoc
@@ -33,7 +34,7 @@ type WorldProvider struct {
 // @success     200 {array} World
 // @router      /worlds [get]
 func (provider WorldProvider) getWorlds(writer http.ResponseWriter, request *http.Request) {
-	err := render.RenderList(writer, request, toRenderList(orderedMapToValues(provider.worlds)))
+	err := render.RenderList(writer, request, toRenderList(provider.worlds))
 	if err != nil {
 		render.Render(writer, request, ErrorRender(err))
 		return
@@ -52,7 +53,7 @@ func (provider WorldProvider) getWorlds(writer http.ResponseWriter, request *htt
 func (provider WorldProvider) getWorldById(writer http.ResponseWriter, request *http.Request) {
 	id := chi.URLParam(request, "id")
 
-	company, exists := provider.worlds.Get(id)
+	company, exists := provider.worldsByID.Get(id)
 	if !exists {
 		render.Render(writer, request, ErrorNotFound)
 		return
@@ -77,5 +78,9 @@ func worldsRouter(provider WorldProvider) http.Handler {
 
 func loadWorlds() WorldProvider {
 	worlds := loadStaticData[World](WORLDS_PATH)
-	return WorldProvider{worlds: worlds}
+	worldsByID := staticDataToOrderedMap(worlds)
+	return WorldProvider{
+		worlds:     worlds,
+		worldsByID: worldsByID,
+	}
 }

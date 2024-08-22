@@ -4,6 +4,8 @@ definitions:
     properties:
       id:
         type: string
+      mode:
+        $ref: '#/definitions/main.TransportMode'
       name:
         type: string
       pattern:
@@ -18,6 +20,20 @@ definitions:
       message:
         type: string
     type: object
+  main.TransportMode:
+    enum:
+    - warp_rail
+    - bus
+    - air
+    - sea
+    - other
+    type: string
+    x-enum-varnames:
+    - WarpRail
+    - Bus
+    - Air
+    - Sea
+    - Other
   main.Warp:
     properties:
       creationDate:
@@ -87,6 +103,12 @@ paths:
   /companies:
     get:
       description: List all companies (defined in https://github.com/Frumple/mrt-api/blob/main/data/companies.yml).
+      parameters:
+      - description: 'Filter by transport mode: `warp_rail`, `bus`, `air`, `sea`,
+          or `other`.'
+        in: query
+        name: mode
+        type: string
       produces:
       - application/json
       responses:
@@ -138,6 +160,11 @@ paths:
       - description: Filter by company ID (from /companies).
         in: query
         name: company
+        type: string
+      - description: 'Filter by transport mode: `warp_rail`, `bus`, `air`, `sea`,
+          or `other`.'
+        in: query
+        name: mode
         type: string
       - description: Filter by world ID (from /worlds).
         in: query

@@ -24,8 +24,8 @@ func (provider WarpProviderV1) getWarps(writer http.ResponseWriter, request *htt
 	warps := []Warp{}
 
 	db := provider.db
-	companies := provider.companyProvider.companies
-	worlds := provider.worldProvider.worlds
+	companiesByID := provider.companyProvider.companiesByID
+	worldsByID := provider.worldProvider.worldsByID
 
 	name := request.URL.Query().Get("name")
 	playerUUID := request.URL.Query().Get("player")
@@ -66,7 +66,7 @@ func (provider WarpProviderV1) getWarps(writer http.ResponseWriter, request *htt
 
 	// Filter by company
 	if companyID != "" {
-		company, exists := companies.Get(companyID)
+		company, exists := companiesByID.Get(companyID)
 
 		if !exists {
 			detail := "The 'company' query parameter must be one of the IDs returned from the /companies endpoint."
@@ -79,7 +79,7 @@ func (provider WarpProviderV1) getWarps(writer http.ResponseWriter, request *htt
 
 	// Filter by world
 	if worldID != "" {
-		world, exists := worlds.Get(worldID)
+		world, exists := worldsByID.Get(worldID)
 
 		if !exists {
 			detail := "The 'world' query parameter must be one of the IDs returned from the /worlds endpoint."
