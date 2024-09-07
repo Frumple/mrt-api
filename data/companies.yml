@@ -43,14 +43,32 @@
 
 # Bus
 
+- id: CCC
+  name: Caravacan Caravan Company
+  pattern: "CCC\\_%"
+  mode: bus
+- id: DH
+  name: Dachshund Bus Lines
+  pattern: "DH%\\_%"
+  mode: bus
+
 # Air (airplanes, seaplanes, helicopters, etc.)
 
 - id: FH
   name: FliHigh
   pattern: "FH\\_%\\_%"
   mode: air
+- id: CGC
+  name: Caravacan Gyroplane Company
+  pattern: "CGC\\_%"
+  mode: air
 
 # Sea (boats, ferries, hovercrafts, etc.)
+
+- id: CFC
+  name: Caravacan Floaty Company
+  pattern: "CFC\\_%"
+  mode: sea
 
 # Other
 
